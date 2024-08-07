@@ -35,3 +35,14 @@ To deploy a Ventura VM with SIP disabled, run:
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
+
+### Sequoia Beta (Orka Desktop only)
+
+To deploy a Sequoia Beta VM with Orka Desktop:<br/>
+Click + Create New VM button<br/>
+Select Pull from OCI registry<br/>
+Name VM and set parameters (CPUs, Memory, HD size)<br/>
+In OCI Image Name field enter:<br/> 
+```sh  
+  ghcr.io/macstadium/orka-images/sequoia:latest
+```
