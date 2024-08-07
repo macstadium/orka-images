@@ -42,7 +42,7 @@ To deploy a Sequoia Beta VM with Orka Desktop:<br/>
 Click + Create New VM button<br/>
 Select Pull from OCI registry<br/>
 Name VM and set parameters (CPUs, Memory, HD size)<br/>
-In OCI Image Name field enter:<br/> 
+In OCI Image Name field enter: `ghcr.io/macstadium/orka-images/sequoia:latest`
 ```sh  
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
