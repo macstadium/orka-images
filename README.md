@@ -49,7 +49,7 @@ To deploy a VM with SIP (system integrity protection) disabled, deploy with the 
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest-no-sip
 ```
 
-### Ventura
+## Ventura
 
 To deploy a Ventura VM with SIP disabled, run:
 
