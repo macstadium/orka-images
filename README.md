@@ -41,15 +41,15 @@ To deploy a Sequoia Beta VM with Orka Desktop:
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
 
-## SIP Disabled
+## SIP Disabled Sonoma
 
-To deploy a VM with SIP (system integrity protection) disabled, deploy with the following image label:
+To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy with the following image label:
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest-no-sip
 ```
 
-## Ventura
+## SIP Diabled Ventura
 
 To deploy a Ventura VM with SIP disabled, run:
 
