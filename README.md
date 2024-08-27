@@ -41,6 +41,13 @@ To deploy a Sequoia Beta VM with Orka Desktop:
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
 
+## iOS Dev Tools (Orka Desktop only)
+
+Sonoma 14.6 image with the following tools installed: Xcode, iPhone 15 Pro Max simulator, Appium, CocoaPods, FastLane, Git, Homebrew, Jenkins. To deploy follow the same procedure for Sequoia Beta machine image.
+```sh 
+ghcr.io/macstadium/orka-images/sonoma_ios:latest
+```
+
 ## SIP Disabled Sonoma
 
 To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy with the following image label:
