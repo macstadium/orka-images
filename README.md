@@ -11,6 +11,12 @@ To get started with Orka Desktop, click the 'Create New VM', choose 'Pull from I
 ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
+## Using with Orka Engine
+To get started with Orka Engine, run:
+```sh
+orka-engine vm run latest-sonoma --image ghcr.io/macstadium/orka-images/sequoia:latest
+```
+
 ## Using with Orka Cluster
 To get started with Orka Cluster, run:
 
@@ -30,16 +36,22 @@ spec:
   image: ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
-## Sequoia Beta (Orka Desktop only)
+## Sequoia
 
-To deploy a Sequoia Beta VM with Orka Desktop:
-1. Click + Create New VM button
-1. Select Pull from OCI registry
-1. Name VM and set parameters (CPUs, Memory, HD size)
-1. In OCI Image Name field enter: `ghcr.io/macstadium/orka-images/sequoia:latest`
+To deploy a Sequoia VM:
+1. Ensure you have a host OS of macOS 14.6 or higher. You may also require a recent beta of Xcode 16 Beta (see https://forums.developer.apple.com/forums/thread/756693)
+2. Deploy Sequoia with the following image label:
 ```sh  
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
+
+## Sonoma 
+To deploy a Sonoma VM, deploy with the following image label:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest
+```
+
 
 ## SIP Disabled Sonoma
 
@@ -47,6 +59,14 @@ To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy wi
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest-no-sip
+```
+
+## Ventura
+
+To deploy a Ventura VM, deploy with the following image label:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura
 ```
 
 ## SIP Diabled Ventura
