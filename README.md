@@ -39,11 +39,19 @@ spec:
 ## Sequoia
 
 To deploy a Sequoia VM:
-1. Ensure you have a host OS of macOS 14.6 or higher
-2. Use the image `ghcr.io/macstadium/orka-images/sequoia:latest`
+1. Ensure you have a host OS of macOS 14.6 or higher. You may also require a recent beta of Xcode 16 Beta (see https://forums.developer.apple.com/forums/thread/756693)
+2. Deploy Sequoia with the following image label:
 ```sh  
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
+
+## Sonoma 
+To deploy a Sonoma VM, deploy with the following image label:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest
+```
+
 
 ## SIP Disabled Sonoma
 
@@ -51,6 +59,14 @@ To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy wi
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest-no-sip
+```
+
+## Ventura
+
+To deploy a Ventura VM, deploy with the following image label:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura
 ```
 
 ## SIP Diabled Ventura
