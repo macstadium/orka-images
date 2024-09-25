@@ -11,6 +11,12 @@ To get started with Orka Desktop, click the 'Create New VM', choose 'Pull from I
 ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
+## Using with Orka Engine
+To get started with Orka Engine, run:
+```sh
+orka-engine vm run latest-sonoma --image ghcr.io/macstadium/orka-images/sequoia:latest
+```
+
 ## Using with Orka Cluster
 To get started with Orka Cluster, run:
 
@@ -30,13 +36,11 @@ spec:
   image: ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
-## Sequoia Beta (Orka Desktop only)
+## Sequoia
 
-To deploy a Sequoia Beta VM with Orka Desktop:
-1. Click + Create New VM button
-1. Select Pull from OCI registry
-1. Name VM and set parameters (CPUs, Memory, HD size)
-1. In OCI Image Name field enter: `ghcr.io/macstadium/orka-images/sequoia:latest`
+To deploy a Sequoia VM:
+1. Ensure you have a host OS of macOS 14.6 or higher
+2. Use the image `ghcr.io/macstadium/orka-images/sequoia:latest`
 ```sh  
   ghcr.io/macstadium/orka-images/sequoia:latest
 ```
