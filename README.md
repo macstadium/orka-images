@@ -1,18 +1,22 @@
 # Orka Images
 
-Repository with Orka 3.0 OCI-compatible images. 
+Repository with Orka 3.2 OCI-compatible images.
 
-These images can be used with Orka Desktop (via the GUI), or Orka Cluster (via the orka3 CLI)
+These images can be used with Orka Desktop (via the GUI), or with Orka via the [orka3 CLI](https://orkadocs.macstadium.com/docs/cli-reference)
 
 ## Using with Orka Desktop
-To get started with Orka Desktop, click the 'Create New VM', choose 'Pull from Image', and use the following OCI image name:
+
+To get started with [Orka Desktop](https://github.com/macstadium/orka-desktop), click the 'Create New VM', choose 'Pull from Image', and use the following OCI image name:
 
 ```sh
 ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
-## Using with Orka Cluster
-To get started with Orka Cluster, run:
+Currently, Orka Desktop doesn't support the new OCI image format. Support for the new format will be available with the next release.
+
+## Using with Orka
+
+To [get started with Orka](https://orkadocs.macstadium.com/docs/orka-cluster-32-introduction), run:
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest
@@ -30,25 +34,6 @@ spec:
   image: ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
-## Sequoia Beta (Orka Desktop only)
-
-To deploy a Sequoia Beta VM with Orka Desktop:
-1. Click + Create New VM button
-1. Select Pull from OCI registry
-1. Name VM and set parameters (CPUs, Memory, HD size)
-1. In OCI Image Name field enter: `ghcr.io/macstadium/orka-images/sequoia:latest`
-```sh  
-  ghcr.io/macstadium/orka-images/sequoia:latest
-```
-
-## SIP Disabled Sequoia
-
-To deploy a Sequoia VM with SIP (system integrity protection) disabled, deploy with the following image label:
-
-```sh
-orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:latest-no-sip
-```
-
 ## SIP Disabled Sonoma
 
 To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy with the following image label:
@@ -64,4 +49,3 @@ To deploy a Ventura VM with SIP disabled, run:
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
-
