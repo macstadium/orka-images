@@ -52,7 +52,8 @@ orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 
 ### Tahoe Beta 3 (25A5306g)
 
-**Note that MacOS 26 is currently in beta. This image is available for OS testing purposes only, using Orka Desktop 3.0 and above, and is not currently officially supported by MacStadium.**
+> [!NOTE]
+> MacOS 26 is currently in beta. This image is available for OS testing purposes only, using Orka Desktop 3.0 and above, and is not currently officially supported by MacStadium.
 
 To deploy a Tahoe Beta VM with Orka Desktop:
 
