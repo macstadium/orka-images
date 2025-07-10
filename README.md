@@ -62,5 +62,5 @@ To deploy a Tahoe Beta VM with Orka Desktop:
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe26:latest`
 ```sh  
-  ghcr.io/macstadium/orka-images/tahoe26:latest
+ ghcr.io/macstadium/orka-images/tahoe:latest
 ```
