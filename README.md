@@ -64,3 +64,14 @@ To deploy a Tahoe Beta VM with Orka Desktop:
 ```sh  
  ghcr.io/macstadium/orka-images/tahoe:latest
 ```
+
+### SIP Disabled Tahoe Beta 3 (25A5306g)
+
+> [!NOTE]
+> MacOS 26 is currently in beta. This image is available for OS testing purposes only, using Orka Desktop 3.0 and above, and is not currently officially supported by MacStadium.
+
+To deploy a Tahoe beta VM with SIP (system integrity protection) disabled, deploy with the following image label:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:latest-no-sip
+```
