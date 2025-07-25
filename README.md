@@ -64,3 +64,13 @@ To deploy a Tahoe Beta VM with Orka Desktop:
 ```sh  
   ghcr.io/macstadium/orka-images/tahoe:latest
 ```
+
+To deploy a Tahoe Beta VM with SIP disabled using Orka Desktop:
+
+1. Click + Create New VM button
+1. Select 'Pull from OCI registry'
+1. Name VM and set parameters (CPUs, Memory, HD size)
+1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:latest-no-sip`
+```sh  
+  ghcr.io/macstadium/orka-images/tahoe:latest-no-sip
+```
