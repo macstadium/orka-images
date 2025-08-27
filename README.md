@@ -50,7 +50,7 @@ To deploy a Ventura VM with SIP disabled, run:
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
 
-### Tahoe Beta 4 (25A3516i)
+### Tahoe Beta 8 (25A5349a)
 
 > [!NOTE]
 > MacOS 26 is currently in beta. This image is available for OS testing purposes only, using Orka Desktop 3.0 and above, and is not currently officially supported by MacStadium.
