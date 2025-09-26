@@ -63,4 +63,4 @@ To deploy a Tahoe VM with Orka Desktop:
 ```
 
 > [!NOTE]
-> MacOS 26 (Tahoe) is currently only supported for guest VMs running on Orka version 3.5.0 and above. We aim to support Tahoe host images in the release of Orka 3.6.0.
+> MacOS 26 (Tahoe) is currently only supported for guest VMs running on Orka version 3.5.0 and above.
