@@ -62,7 +62,7 @@ From your local machine:
 
 #### Tool Installation
 
-- Downloads and installs Orka VM Tools v3.3.0
+- Downloads and installs Orka VM Tools v3.5.0
 - Downloads and runs Orka sys-daemon setup script (this is used to optimize the Screen Share and VNC performance of the VM)
 - Automatically cleans up installation files
 
