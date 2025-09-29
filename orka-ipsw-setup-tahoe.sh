@@ -2,6 +2,19 @@
 
 set -euo pipefail
 
+log() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+    exit 1
+}
+
 # Check if running as root
 if [[ $EUID -eq 0 ]]; then
     error "This script should not be run as root. Please run as a regular user with sudo privileges."
