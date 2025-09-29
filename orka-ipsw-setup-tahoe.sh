@@ -113,7 +113,7 @@ disable_filevault() {
 install_orka_vm_tools() {
     log "Installing Orka VM Tools..."
     
-    local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/3.3.0/orka-vm-tools.pkg"
+    local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/3.5.0/orka-vm-tools.pkg"
     local pkg_path="/tmp/orka-vm-tools.pkg"
     
     # Download the Orka VM Tools package
@@ -132,7 +132,7 @@ install_orka_vm_tools() {
     # Clean up installer
     rm -f "$pkg_path"
     
-    log "Orka VM Tools v3.3.0 installed successfully"
+    log "Orka VM Tools v3.5.0 installed successfully"
 }
 
 # Download and run the setup-sys-daemon.sh script
