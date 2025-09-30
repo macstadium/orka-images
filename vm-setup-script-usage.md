@@ -45,7 +45,7 @@ Run the script:
 
 From your local machine:
 
-- ```bashscp orka-ipsw-setup-tahoe.sh user@vm-ip:/Users/user/```
+- ```bash scp orka-ipsw-setup-tahoe.sh user@vm-ip:/Users/user/```
 - ```ssh user@vm-ip```
 - ```chmod +x orka-ipsw-setup-tahoe.sh```
 - ```./orka-ipsw-setup-tahoe.sh```
