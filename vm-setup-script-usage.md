@@ -28,7 +28,7 @@
 
 - When prompted for Terminal permissions access, click 'Accept'
 - Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
-- Enter the password ```admin``` when prompted during the script installation process
+- Enter your password when prompted during the script installation process
 - When the script shell displays ```sh-3.2#``` type ```exit``` and press ```Enter``` to continue script installation
 - Upon system reboot, re-open the Terminal application and enter ```sudo launchctl list sysctl``` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
 
@@ -60,10 +60,9 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 
 #### System Configuration
 
-- Enables Screen Sharing with VNC password "admin"
+- Enables Screen Sharing with VNC password 
 - Enables Remote Login (SSH) with full disk access
-- Creates/configures admin user (username: admin, password: admin)
-- Disables FileVault (checks status and warns if enabled)
+- Checks if FileVault is enabled/disabled (checks status and warns if enabled)
 - Sets macOS updates to Download Only (prevents automatic updates)
 
 #### Tool installation
