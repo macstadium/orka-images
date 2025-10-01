@@ -1,14 +1,14 @@
 # Orka VM Setup Script Usage
 ## This script automates the configuration and setup of macOS Orka VMs for optimal performance. It configures system settings, installs required tools, and prepares the VM for use with Orka.
 
-### System Requirements:
+### System requirements:
 
 - macOS IPSW file (Tahoe, Sequoia, or Sonoma)
 - Admin/sudo privileges on the VM
 - Internet connection for downloading packages
 - Terminal access (via SSH, Screen Sharing, or direct console)
 
-### Before Running:
+### Before running:
 
 - Ensure you have administrator access to the VM
 - Close any important applications (they will be terminated during cleanup)
@@ -50,7 +50,31 @@ From your local machine:
 - ```chmod +x orka-ipsw-setup-tahoe.sh```
 - ```./orka-ipsw-setup-tahoe.sh```
 
-### What the Script Does:
+### When running the script on MacOS Sequoia:
+
+- When prompted for Terminal permissions access, click 'Accept'
+- Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
+- Enter the password ```admin``` when prompted during the script installation process
+- When the script shell displays ```sh-3.2#``` type ```exit``` and press ```Enter``` to continue script installation
+- Upon system reboot, re-open the Terminal application and enter ```sudo launchctl list sysctl``` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
+
+````{
+    "LimitLoadToSessionType" = "System";
+    "Label" = "sysctl";
+    "OnDemand" = true;
+    "LastExitStatus" = 0;
+    "Program" = "/usr/sbin/sysctl";
+    "ProgramArguments" = (
+        "/usr/sbin/sysctl";
+        "-w";
+        "net.link.generic.system.hwcksum_tx=0";
+        "net.link.generic.system.hwcksum_rx=0";
+        "net.inet.tcp.tso=0";
+    );
+};
+````
+
+### What the script does:
 
 #### System Configuration
 
@@ -60,13 +84,13 @@ From your local machine:
 - Disables FileVault (checks status and warns if enabled)
 - Sets macOS updates to Download Only (prevents automatic updates)
 
-#### Tool Installation
+#### Tool installation
 
 - Downloads and installs Orka VM Tools v3.5.0
 - Downloads and runs Orka sys-daemon setup script (this is used to optimize the Screen Share and VNC performance of the VM)
 - Automatically cleans up installation files
 
-#### System Cleanup
+#### System cleanup
 
 - Closes all non-essential applications
 - Empties trash and cleans temporary files
@@ -74,7 +98,7 @@ From your local machine:
 - Clears cache files
 - Erases terminal history
 
-#### Final Steps
+#### Final steps
 
 - Automatically reboots the VM to flush all changes
 
