@@ -78,7 +78,11 @@ From your local machine:
 
 #### On MacOS Tahoe:
 
-Same as above, though users may experience a delay during the system cleanup and restart step. 
+Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually.
+
+#### On MacOS Sonoma:
+
+Approve Terminal 'System Events' access and 'Finder' access request when prompted during the system cleanup and restart step.
 
 ### What the script does:
 
