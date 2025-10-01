@@ -16,37 +16,9 @@
 
 ### Installation:
 
-#### Method 1: Direct Copy & Paste (Recommended)
+#### Download via GitHub
 
-Connect to your VM via SSH, Screen Sharing, or console
-Open the Terminal application
-
-Create the script file:
-
-```bash   nano orka-ipsw-setup.sh```
-
-Copy the [entire script] and paste into nano
-Save and exit: ```Ctrl+X → Y → Enter```
-Make executable:
-
-```bash   chmod +x orka-ipsw-setup.sh```
-
-Run the script:
-
-```bash   ./orka-ipsw-setup.sh```
-
-#### Method 2: Download via GitHub
-
-- ```bashcurl -fsSL https://github.com/macstadium/orka-images/orka-ipsw-setup-tahoe.sh -o orka-ipsw-setup.sh```
-- ```chmod +x orka-ipsw-setup.sh```
-- ```./orka-ipsw-setup.sh```
-
-#### Method 3: Transfer via SCP
-
-From your local machine:
-
-- ```bash scp orka-ipsw-setup.sh user@vm-ip:/Users/user/```
-- ```ssh user@vm-ip```
+- ```/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"```
 - ```chmod +x orka-ipsw-setup.sh```
 - ```./orka-ipsw-setup.sh```
 
