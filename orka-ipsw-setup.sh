@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ORKA_VM_TOOLS_VERSION="${ORKA_VM_TOOLS_VERSION:-3.5.0}"
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
@@ -41,28 +43,12 @@ enable_screen_sharing() {
         -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes \
         -clientopts -setvncpw -vncpw admin -restart -agent -privs -all
     
-    # Alternative method using launchctl
-    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-    
     log "Screen Sharing enabled"
 }
 
 # Enable Remote Login (SSH)
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
-    
-    # Create admin user if one doesn't already exist
-    if ! dscl . -read /Users/admin &>/dev/null; then
-        log "Creating admin user..."
-        sudo dscl . -create /Users/admin
-        sudo dscl . -create /Users/admin UserShell /bin/bash
-        sudo dscl . -create /Users/admin RealName "Administrator"
-        sudo dscl . -create /Users/admin UniqueID 501
-        sudo dscl . -create /Users/admin PrimaryGroupID 80
-        sudo dscl . -create /Users/admin NFSHomeDirectory /Users/admin
-        
-        # Set password to "admin"
-        sudo dscl . -passwd /Users/admin admin
         
         # Add to admin group
         sudo dscl . -append /Groups/admin GroupMembership admin
@@ -70,13 +56,6 @@ enable_remote_login() {
         
         # Create home directory
         sudo createhomedir -c -u admin
-        
-        log "Admin user created with password 'admin'"
-    else
-        log "Admin user already exists, updating password..."
-        sudo dscl . -passwd /Users/admin admin
-        log "Admin user password set to 'admin'"
-    fi
     
     # Enable SSH
     sudo systemsetup -setremotelogin on
@@ -129,9 +108,9 @@ disable_filevault() {
 
 # Download and install Orka VM Tools
 install_orka_vm_tools() {
-    log "Installing Orka VM Tools..."
+    log "Installing Orka VM Tools version ${ORKA_VM_TOOLS_VERSION}..."
     
-    local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/3.5.0/orka-vm-tools.pkg"
+    local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/${ORKA_VM_TOOLS_VERSION}/orka-vm-tools.pkg"
     local pkg_path="/tmp/orka-vm-tools.pkg"
     local pkg_name="orka-vm-tools.pkg"
     
