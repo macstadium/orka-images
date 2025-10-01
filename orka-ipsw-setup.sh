@@ -243,6 +243,3 @@ main() {
 
 # Handle script interruption
 trap 'error "Script interrupted by user"' INT TERM
-
-# Run main function
-main "$@"
