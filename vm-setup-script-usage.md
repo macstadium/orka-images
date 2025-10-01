@@ -50,7 +50,9 @@ From your local machine:
 - ```chmod +x orka-ipsw-setup-tahoe.sh```
 - ```./orka-ipsw-setup-tahoe.sh```
 
-### When running the script on MacOS Sequoia:
+### Installation steps when running the script:
+
+#### On MacOS Sequoia:
 
 - When prompted for Terminal permissions access, click 'Accept'
 - Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
@@ -73,6 +75,10 @@ From your local machine:
     );
 };
 ````
+
+#### On MacOS Tahoe:
+
+Same as above, though users may experience a delay during the system cleanup and restart step. 
 
 ### What the script does:
 
