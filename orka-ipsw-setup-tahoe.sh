@@ -133,6 +133,7 @@ install_orka_vm_tools() {
     
     local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/3.5.0/orka-vm-tools.pkg"
     local pkg_path="/tmp/orka-vm-tools.pkg"
+    local pkg_name="orka-vm-tools.pkg"
     
     # Download the Orka VM Tools package
     log "Downloading Orka VM Tools from $pkg_url..."
