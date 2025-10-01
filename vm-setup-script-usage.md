@@ -23,32 +23,32 @@ Open the Terminal application
 
 Create the script file:
 
-```bash   nano orka-ipsw-setup-tahoe.sh```
+```bash   nano orka-ipsw-setup.sh```
 
 Copy the [entire script] and paste into nano
 Save and exit: ```Ctrl+X → Y → Enter```
 Make executable:
 
-```bash   chmod +x orka-ipsw-setup-tahoe.sh```
+```bash   chmod +x orka-ipsw-setup.sh```
 
 Run the script:
 
-```bash   ./orka-ipsw-setup-tahoe.sh```
+```bash   ./orka-ipsw-setup.sh```
 
 #### Method 2: Download via GitHub
 
-- ```bashcurl -fsSL https://github.com/macstadium/orka-images/orka-ipsw-setup-tahoe.sh -o orka-ipsw-setup-tahoe.sh```
-- ```chmod +x orka-ipsw-setup-tahoe.sh```
-- ```./orka-ipsw-setup-tahoe.sh```
+- ```bashcurl -fsSL https://github.com/macstadium/orka-images/orka-ipsw-setup-tahoe.sh -o orka-ipsw-setup.sh```
+- ```chmod +x orka-ipsw-setup.sh```
+- ```./orka-ipsw-setup.sh```
 
 #### Method 3: Transfer via SCP
 
 From your local machine:
 
-- ```bash scp orka-ipsw-setup-tahoe.sh user@vm-ip:/Users/user/```
+- ```bash scp orka-ipsw-setup.sh user@vm-ip:/Users/user/```
 - ```ssh user@vm-ip```
-- ```chmod +x orka-ipsw-setup-tahoe.sh```
-- ```./orka-ipsw-setup-tahoe.sh```
+- ```chmod +x orka-ipsw-setup.sh```
+- ```./orka-ipsw-setup.sh```
 
 ### Installation steps when running the script:
 
@@ -118,4 +118,4 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 - Restrict network access as needed for your security policy
 - Ensure enabled services match your requirements
 
-[entire script]: https://github.com/macstadium/orka-images/orka-ipsw-setup-tahoe.sh
+[entire script]: https://github.com/macstadium/orka-images/orka-ipsw-setup.sh
