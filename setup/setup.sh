@@ -52,22 +52,22 @@ enable_remote_login() {
     local CURRENT_USER="$USER"
     
     # Add current user to admin group if not already a member
-    sudo dscl . -append /Groups/admin GroupMembership "$current_user" 2>/dev/null || true
-    sudo dscl . -append /Groups/wheel GroupMembership "$current_user" 2>/dev/null || true
+    sudo dscl . -append /Groups/admin GroupMembership "$CURRENT_USER" 2>/dev/null || true
+    sudo dscl . -append /Groups/wheel GroupMembership "$CURRENT_USER" 2>/dev/null || true
     
     # Ensure home directory exists for current user
-    sudo createhomedir -c -u "$current_user" 2>/dev/null || true
+    sudo createhomedir -c -u "$CURRENT_USER" 2>/dev/null || true
     
     # Enable SSH
     sudo systemsetup -setremotelogin on
     
     # Ensure current user can SSH
-    sudo dseditgroup -o edit -a "$current_user" -t user com.apple.access_ssh 2>/dev/null || true
+    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_ssh 2>/dev/null || true
     
     # Start SSH service
     sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
     
-    log "Remote Login enabled for user: $current_user"
+    log "Remote Login enabled for user: $CURRENT_USER"
 }
 
 
