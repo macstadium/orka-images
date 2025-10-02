@@ -1,35 +1,37 @@
 # Orka VM Setup Script Usage
-## This script automates the configuration and setup of macOS Orka VMs for optimal performance. It configures system settings, installs required tools, and prepares the VM for use with Orka.
 
-### System requirements:
+## This script automates the configuration and setup of macOS Orka VMs for optimal performance. It configures system settings, installs required tools, and prepares the VM for use with Orka
+
+### System requirements
 
 - macOS IPSW file (Tahoe, Sequoia, or Sonoma)
 - Admin/sudo privileges on the VM
 - Internet connection for downloading packages
 - Terminal access (via SSH, Screen Sharing, or direct console)
 
-### Before running:
+### Before running
 
 - Ensure you have administrator access to the VM
 - Close any important applications (they will be terminated during cleanup)
 - Save any work in progress (the VM will reboot automatically)
 
-### Installation:
+### Installation
 
 #### Download via GitHub
 
-- `bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"`
+- `bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/setup/setup.sh)"`
 
-### Installation steps when running the script:
+### Installation steps when running the script
 
-#### On MacOS Sequoia:
+#### On MacOS Sequoia
+
 - When prompted for Terminal permissions access, click 'Accept'
 - Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
 - Enter your password when prompted during the script installation process
 - When the script shell displays `sh-3.2#` type `exit` and press `Enter` to continue script installation
 - Upon system reboot, re-open the Terminal application and enter `sudo launchctl list sysctl` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
 
-<code>{
+```markdown
 "LimitLoadToSessionType" = "System";
 "Label" = "sysctl";
 "OnDemand" = true;
@@ -42,23 +44,21 @@
 "net.link.generic.system.hwcksum_rx=0";
 "net.inet.tcp.tso=0";
 );
-</code>
+```
 
-
-
-#### On MacOS Tahoe:
+#### On MacOS Tahoe
 
 Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually.
 
-#### On MacOS Sonoma:
+#### On MacOS Sonoma
 
 Approve Terminal 'System Events' access and 'Finder' access request when prompted during the system cleanup and restart step.
 
-### What the script does:
+### What the script does
 
 #### System Configuration
 
-- Enables Screen Sharing with VNC password 
+- Enables Screen Sharing with VNC password
 - Enables Remote Login (SSH) with full disk access
 - Sets macOS updates to Download Only (prevents automatic updates)
 
@@ -80,10 +80,8 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 
 - Automatically reboots the VM to flush all changes
 
-### Important notes:
+### Important notes
 
 - Change default passwords in production environments
 - Restrict network access as needed for your security policy
 - Ensure enabled services match your requirements
-
-[entire script]: https://github.com/macstadium/orka-images/orka-ipsw-setup.sh
