@@ -18,33 +18,33 @@
 
 #### Download via GitHub
 
-- ```bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"```
+- `bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"`
 
 ### Installation steps when running the script:
 
 #### On MacOS Sequoia:
-
 - When prompted for Terminal permissions access, click 'Accept'
 - Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
 - Enter your password when prompted during the script installation process
-- When the script shell displays ```sh-3.2#``` type ```exit``` and press ```Enter``` to continue script installation
-- Upon system reboot, re-open the Terminal application and enter ```sudo launchctl list sysctl``` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
+- When the script shell displays `sh-3.2#` type `exit` and press `Enter` to continue script installation
+- Upon system reboot, re-open the Terminal application and enter `sudo launchctl list sysctl` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
 
-````{
-    "LimitLoadToSessionType" = "System";
-    "Label" = "sysctl";
-    "OnDemand" = true;
-    "LastExitStatus" = 0;
-    "Program" = "/usr/sbin/sysctl";
-    "ProgramArguments" = (
-        "/usr/sbin/sysctl";
-        "-w";
-        "net.link.generic.system.hwcksum_tx=0";
-        "net.link.generic.system.hwcksum_rx=0";
-        "net.inet.tcp.tso=0";
-    );
-};
-````
+<code>{
+"LimitLoadToSessionType" = "System";
+"Label" = "sysctl";
+"OnDemand" = true;
+"LastExitStatus" = 0;
+"Program" = "/usr/sbin/sysctl";
+"ProgramArguments" = (
+"/usr/sbin/sysctl";
+"-w";
+"net.link.generic.system.hwcksum_tx=0";
+"net.link.generic.system.hwcksum_rx=0";
+"net.inet.tcp.tso=0";
+);
+</code>
+
+
 
 #### On MacOS Tahoe:
 
@@ -65,7 +65,7 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 #### Tool installation
 
 - Downloads and installs the current version of Orka VM Tools, default is v3.5.0
-- Downloads and runs Orka sys-daemon setup script (this is used to optimize the Screen Share and VNC performance of the VM)
+- Downloads and runs Orka `sys-daemon.sh` setup script (this is used to optimize the Screen Share and VNC performance of the VM)
 - Automatically cleans up installation files
 
 #### System cleanup
