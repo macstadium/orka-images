@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ORKA_VM_TOOLS_VERSION="${ORKA_VM_TOOLS_VERSION:-3.5.0}"
-CURRENT_USER="{$USER}"
+CURRENT_USER="${USER}"
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -49,7 +49,7 @@ enable_screen_sharing() {
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
     
-    local current_user="$USER"
+    local CURRENT_USER="$USER"
     
     # Add current user to admin group if not already a member
     sudo dscl . -append /Groups/admin GroupMembership "$current_user" 2>/dev/null || true
@@ -212,3 +212,6 @@ main() {
 
 # Handle script interruption
 trap 'error "Script interrupted by user"' INT TERM
+
+# Run main function
+main
