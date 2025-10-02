@@ -18,9 +18,7 @@
 
 #### Download via GitHub
 
-- ```/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"```
-- ```chmod +x orka-ipsw-setup.sh```
-- ```./orka-ipsw-setup.sh```
+- ```bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/orka-ipsw-setup.sh)"```
 
 ### Installation steps when running the script:
 
@@ -62,12 +60,11 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 
 - Enables Screen Sharing with VNC password 
 - Enables Remote Login (SSH) with full disk access
-- Checks if FileVault is enabled/disabled (checks status and warns if enabled)
 - Sets macOS updates to Download Only (prevents automatic updates)
 
 #### Tool installation
 
-- Downloads and installs Orka VM Tools v3.5.0
+- Downloads and installs the current version of Orka VM Tools, default is v3.5.0
 - Downloads and runs Orka sys-daemon setup script (this is used to optimize the Screen Share and VNC performance of the VM)
 - Automatically cleans up installation files
 
