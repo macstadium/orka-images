@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ORKA_VM_TOOLS_VERSION="${ORKA_VM_TOOLS_VERSION:-3.5.0}"
+CURRENT_USER="{$USER}"
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -38,10 +39,8 @@ log "Starting MacOS Orka VM setup..."
 enable_screen_sharing() {
     log "Enabling Screen Sharing..."
     
-    # Enable Screen Sharing via System Preferences
-    sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-        -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes \
-        -clientopts -setvncpw -vncpw admin -restart -agent -privs -all
+    # Enable Screen Sharing service
+    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
     
     log "Screen Sharing enabled"
 }
@@ -49,28 +48,28 @@ enable_screen_sharing() {
 # Enable Remote Login (SSH)
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
-        
-        # Add to admin group
-        sudo dscl . -append /Groups/admin GroupMembership admin
-        sudo dscl . -append /Groups/wheel GroupMembership admin
-        
-        # Create home directory
-        sudo createhomedir -c -u admin
+    
+    local current_user="$USER"
+    
+    # Add current user to admin group if not already a member
+    sudo dscl . -append /Groups/admin GroupMembership "$current_user" 2>/dev/null || true
+    sudo dscl . -append /Groups/wheel GroupMembership "$current_user" 2>/dev/null || true
+    
+    # Ensure home directory exists for current user
+    sudo createhomedir -c -u "$current_user" 2>/dev/null || true
     
     # Enable SSH
     sudo systemsetup -setremotelogin on
     
-    # Enable full disk access for remote users
-    sudo dseditgroup -o edit -a everyone -t group com.apple.access_ssh
-    
-    # Ensure admin user can SSH
-    sudo dseditgroup -o edit -a admin -t user com.apple.access_ssh
+    # Ensure current user can SSH
+    sudo dseditgroup -o edit -a "$current_user" -t user com.apple.access_ssh 2>/dev/null || true
     
     # Start SSH service
     sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
     
-    log "Remote Login enabled with full disk access for admin user"
+    log "Remote Login enabled for user: $current_user"
 }
+
 
 # Configure macOS updates (Set to download-only for Tahoe)
 configure_macos_updates() {
@@ -88,22 +87,6 @@ configure_macos_updates() {
     sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdateRestartRequired -bool false
     
     log "macOS updates configured for Download Only mode"
-}
-
-# Disable FileVault (When running on Tahoe)
-disable_filevault() {
-    log "Ensuring FileVault is disabled..."
-    
-    # Check if FileVault is enabled
-    local filevault_status=$(sudo fdesetup status | head -1)
-    
-    if [[ "$filevault_status" == "FileVault is On." ]]; then
-        warn "FileVault is currently enabled. For Tahoe, it should be disabled."
-        warn "Please disable FileVault manually through System Preferences > Security & Privacy > FileVault"
-        warn "This requires a reboot and cannot be automated safely."
-    else
-        log "FileVault is already disabled"
-    fi
 }
 
 # Download and install Orka VM Tools
@@ -130,7 +113,7 @@ install_orka_vm_tools() {
     # Clean up installer
     rm -f "$pkg_path"
     
-    log "Orka VM Tools v3.5.0 installed successfully"
+    log "Orka VM Tools ${ORKA_VM_TOOLS_VERSION} installed successfully"
 }
 
 # Download and run the setup-sys-daemon.sh script
@@ -138,21 +121,11 @@ setup_sys_daemon() {
     log "Setting up system daemon..."
     
     local script_url="https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh"
-    local script_path="/tmp/setup-sys-daemon.sh"
     
-    # Download the script
-    curl -fsSL "$script_url" -o "$script_path" || error "Failed to download setup-sys-daemon.sh"
+    # Download and execute the script directly
+    curl -fsSL "$script_url" | sudo bash || error "Failed to run setup-sys-daemon.sh"
     
-    # Make it executable
-    chmod +x "$script_path"
-    
-    # Run the script
-    sudo "$script_path" || error "Failed to run setup-sys-daemon.sh"
-    
-    # Delete the script
-    rm -f "$script_path"
-    
-    log "System daemon setup completed and script deleted"
+    log "System daemon setup completed"
 }
 
 # Post-install system cleanup
@@ -217,10 +190,6 @@ main() {
     # Enable required services
     enable_screen_sharing
     enable_remote_login
-    
-    # Configure Tahoe-specific settings
-    disable_filevault
-    configure_macos_updates
     
     # Install Orka VM Tools
     install_orka_vm_tools
