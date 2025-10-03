@@ -28,7 +28,6 @@
 #### On MacOS Sequoia
 
 - When prompted for Terminal permissions access, click 'Accept'
-- Terminal will need full disk access to run the script. Configure this by going to your System Settings -> Privacy and Security -> Full Disk Access and adding 'Terminal' by clicking the + button and searching for the app in the search bar.
 - Enter your password when prompted during the script installation process
 - When the script shell displays `sh-3.2#` type `exit` and press `Enter` to continue script installation
 - Upon system reboot, re-open the Terminal application and enter `sudo launchctl list sysctl` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
@@ -86,3 +85,4 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 - Change default passwords in production environments
 - Restrict network access as needed for your security policy
 - Ensure enabled services match your requirements
+- If you need access to certain directories that are protected by Full Disk Access, you will need enable this through System Preferences. Navigate to to **System Preferences -> General -> Sharing -> Remote Login** and toggle "Allow full disk access for remote users" to On.

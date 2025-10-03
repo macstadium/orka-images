@@ -63,12 +63,20 @@ To deploy a Tahoe VM with Orka Desktop:
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:latest`
 
+```sh  
+  ghcr.io/macstadium/orka-images/tahoe:latest
+```
+
 To deploy a SIP-disabled Tahoe VM with Orka Desktop:
 
 1. Click + Create New VM button
 1. Select 'Pull from OCI registry'
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:no-sip`
+
+```sh  
+  ghcr.io/macstadium/orka-images/tahoe:no-sip
+```
 
 > [!NOTE]
 > MacOS 26 (Tahoe) is currently only supported for guest VMs running on Orka version 3.5.0 and above.

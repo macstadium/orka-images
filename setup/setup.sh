@@ -38,46 +38,24 @@ log "Starting MacOS Orka VM setup..."
 # Enable Screen Sharing
 enable_screen_sharing() {
     log "Enabling Screen Sharing..."
-    
+
     # Enable Screen Sharing service
     sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
-    
+
     log "Screen Sharing enabled"
 }
 
-# Enable Remote Login (SSH)
-enable_remote_login() {
-    log "Enabling Remote Login (SSH)..."
-    
-    local CURRENT_USER="$USER"
-    
-    # Add current user to admin group if not already a member
-    sudo dscl . -append /Groups/admin GroupMembership "$CURRENT_USER" 2>/dev/null || true
-    sudo dscl . -append /Groups/wheel GroupMembership "$CURRENT_USER" 2>/dev/null || true
-    
-    # Ensure home directory exists for current user
-    sudo createhomedir -c -u "$CURRENT_USER" 2>/dev/null || true
-    
-    # Enable SSH
-    sudo systemsetup -setremotelogin on
-    
-    # Ensure current user can SSH
-    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_ssh 2>/dev/null || true
-    
-    # Start SSH service
-    sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
-    
-    log "Remote Login enabled for user: $CURRENT_USER"
-}
+# Enable SSH
 
+sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
 
 # Configure macOS updates (Set to download-only for Tahoe)
 configure_macos_updates() {
     log "Configuring macOS updates for Download Only..."
     
-    # Set automatic update check to true, but disable automatic installation
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool true
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool true
+    # Set automatic update check to false, disable automatic installation
+    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool false
+    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist ConfigDataInstall -bool false
@@ -132,13 +110,20 @@ setup_sys_daemon() {
 cleanup_system() {
     log "Cleaning up system..."
     
-    # Close all applications (except essential system apps)
-    osascript -e 'tell application "System Events" to set quitapps to name of every application process whose background only is false'
-    osascript -e 'repeat with apps in quitapps
-        if apps is not in {"Finder", "loginwindow"} then
+# Close all applications (except essential system apps)
+
+    osascript <<'EOF' 2>/dev/null || true
+tell application "System Events"
+    set quitapps to name of every application process whose background only is false
+end tell
+repeat with apps in quitapps
+    if apps is not in {"Finder", "loginwindow", "System Settings", "System Preferences"} then
+        try
             tell application apps to quit
-        end if
-    end repeat' 2>/dev/null || true
+        end try
+    end if
+end repeat
+EOF
     
     # Empty trash
     osascript -e 'tell application "Finder" to empty trash' 2>/dev/null || true
