@@ -20,7 +20,7 @@
 #### Download via GitHub
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/setup/setup.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/HEAD/setup/setup.sh)"
 ```
 
 ### Installation steps when running the script
