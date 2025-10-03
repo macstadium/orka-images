@@ -44,8 +44,7 @@ enable_screen_sharing() {
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
    
-    sudo systemsetup -setremotelogin on
-    
+    sudo launchctl enable system/com.openssh.sshd
     sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
     
     log "Remote Login (SSH) enabled"
@@ -102,30 +101,11 @@ setup_sys_daemon() {
 }
 
 # Post-install system cleanup
-cleanup_system() {
-    log "Cleaning up system..."
 
-    osascript <<'EOF' 2>/dev/null || true
-tell application "System Events"
-    set quitapps to name of every application process whose background only is false
-end tell
-repeat with apps in quitapps
-    if apps is not in {"Finder", "loginwindow", "System Settings", "System Preferences"} then
-        try
-            tell application apps to quit
-        end try
-    end if
-end repeat
-EOF
-    
-    osascript -e 'tell application "Finder" to empty trash' 2>/dev/null || true
-    
-    local home_dir="$HOME"
-    
-    rm -rf "$home_dir/Downloads/"* 2>/dev/null || true
+cleanup_system() {
+    log "Performing minimal system cleanup..."
     
     rm -rf /tmp/* 2>/dev/null || true
-    rm -rf "$home_dir/Library/Caches/"* 2>/dev/null || true
     
     log "System cleanup completed"
 }

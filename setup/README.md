@@ -14,6 +14,10 @@
 - Ensure you have administrator access to the VM
 - Close any important applications (they will be terminated during cleanup)
 - Save any work in progress (the VM will reboot automatically)
+- Close all open applications manually
+- Empty the Trash if desired
+
+The script will handle system-level cleanup only
 
 ### Installation
 
