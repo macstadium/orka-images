@@ -23,19 +23,16 @@ error() {
     exit 1
 }
 
-# Check if running as root
 if [[ $EUID -eq 0 ]]; then
     error "This script should not be run as root. Please run as a regular user with sudo privileges."
 fi
 
-# Check if sudo is available
 if ! command -v sudo &> /dev/null; then
     error "sudo is required but not available"
 fi
 
 log "Starting MacOS Orka VM setup..."
 
-# Enable Screen Sharing
 enable_screen_sharing() {
     log "Enabling Screen Sharing..."
     
@@ -44,7 +41,6 @@ enable_screen_sharing() {
     log "Screen Sharing enabled"
 }
 
-# Enable Remote Login (SSH)
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
    
@@ -59,14 +55,12 @@ enable_remote_login() {
 configure_macos_updates() {
     log "Configuring macOS updates for Download Only..."
     
-    # Set automatic update check to false, disable automatic installation
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool false
     sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist ConfigDataInstall -bool false
     
-    # Disable automatic installation of app updates from App Store
     sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdate -bool false
     sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdateRestartRequired -bool false
     
@@ -81,20 +75,16 @@ install_orka_vm_tools() {
     local pkg_path="/tmp/orka-vm-tools.pkg"
     local pkg_name="orka-vm-tools.pkg"
     
-    # Download the Orka VM Tools package
     log "Downloading Orka VM Tools from $pkg_url..."
     curl -fsSL "$pkg_url" -o "$pkg_path" || error "Failed to download Orka VM Tools package"
     
-    # Verify the download was successful
     if [[ ! -f "$pkg_path" ]]; then
         error "Orka VM Tools package not found after download"
     fi
     
-    # Install the package
     log "Installing Orka VM Tools package..."
     sudo installer -pkg "$pkg_path" -target / || error "Failed to install Orka VM Tools package"
     
-    # Clean up installer
     rm -f "$pkg_path"
     
     log "Orka VM Tools ${ORKA_VM_TOOLS_VERSION} installed successfully"
@@ -106,7 +96,6 @@ setup_sys_daemon() {
     
     local script_url="https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh"
     
-    # Download and execute the script directly
     curl -fsSL "$script_url" | sudo bash || error "Failed to run setup-sys-daemon.sh"
     
     log "System daemon setup completed"
@@ -115,8 +104,6 @@ setup_sys_daemon() {
 # Post-install system cleanup
 cleanup_system() {
     log "Cleaning up system..."
-    
-# Close all applications (except essential system apps)
 
     osascript <<'EOF' 2>/dev/null || true
 tell application "System Events"
@@ -131,16 +118,12 @@ repeat with apps in quitapps
 end repeat
 EOF
     
-    # Empty trash
     osascript -e 'tell application "Finder" to empty trash' 2>/dev/null || true
     
-    # Clean home directory
     local home_dir="$HOME"
     
-    # Remove files from Downloads folder
     rm -rf "$home_dir/Downloads/"* 2>/dev/null || true
     
-    # Clean temporary files
     rm -rf /tmp/* 2>/dev/null || true
     rm -rf "$home_dir/Library/Caches/"* 2>/dev/null || true
     
@@ -178,31 +161,23 @@ schedule_reboot() {
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     
-    # Enable required services
     enable_screen_sharing
     enable_remote_login
     
-    # Install Orka VM Tools
     install_orka_vm_tools
     
-    # Setup system daemon
     setup_sys_daemon
     
-    # Clean up system
     cleanup_system
     
-    # Erase terminal history
     erase_terminal_history
     
     log "=== Setup completed successfully ==="
     log "The system will now reboot to ensure all changes are applied"
     
-    # Schedule reboot
     schedule_reboot
 }
 
-# Handle script interruption
 trap 'error "Script interrupted by user"' INT TERM
 
-# Run main function
 main
