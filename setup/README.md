@@ -19,7 +19,9 @@
 
 #### Download via GitHub
 
-- `bash /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/setup/setup.sh)"`
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/macstadium/orka-images/setup/setup.sh)"
+```
 
 ### Installation steps when running the script
 
@@ -42,8 +44,7 @@
 "-w";
 "net.link.generic.system.hwcksum_tx=0";
 "net.link.generic.system.hwcksum_rx=0";
-"net.inet.tcp.tso=0";
-);
+"net.inet.tcp.tso=0"; );
 ```
 
 #### On MacOS Tahoe

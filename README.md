@@ -36,7 +36,7 @@ spec:
 
 ### VM setup from IPSW script
 
-To get started with Orka using an IPSW and Orka Desktop, use the `orka-ipsw-setup.sh` script located in the `setup` directory.
+To get started with Orka using an IPSW and Orka Desktop, use the [setup.sh script](./setup/README.md).
 
 ### SIP Disabled Sonoma
 
@@ -54,7 +54,7 @@ To deploy a Ventura VM with SIP disabled, run:
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
 
-### MacOS 26 Tahoe 
+### MacOS 26 Tahoe
 
 To deploy a Tahoe VM with Orka Desktop:
 
@@ -63,19 +63,12 @@ To deploy a Tahoe VM with Orka Desktop:
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:latest`
 
-```sh  
-  ghcr.io/macstadium/orka-images/tahoe:latest
-```
-
 To deploy a SIP-disabled Tahoe VM with Orka Desktop:
 
 1. Click + Create New VM button
 1. Select 'Pull from OCI registry'
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:no-sip`
-```sh  
-  ghcr.io/macstadium/orka-images/tahoe:no-sip
-```
 
 > [!NOTE]
 > MacOS 26 (Tahoe) is currently only supported for guest VMs running on Orka version 3.5.0 and above.
