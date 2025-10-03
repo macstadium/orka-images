@@ -39,7 +39,6 @@ log "Starting MacOS Orka VM setup..."
 enable_screen_sharing() {
     log "Enabling Screen Sharing..."
     
-    # Enable Screen Sharing service
     sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
     
     log "Screen Sharing enabled"
@@ -48,17 +47,15 @@ enable_screen_sharing() {
 # Enable Remote Login (SSH)
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
-    
-    # Enable SSH
+   
     sudo systemsetup -setremotelogin on
     
-    # Start SSH service
     sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
     
     log "Remote Login (SSH) enabled"
 }
 
-# Configure macOS updates (Set to download-only for Tahoe)
+# Configure macOS updates
 configure_macos_updates() {
     log "Configuring macOS updates for Download Only..."
     
