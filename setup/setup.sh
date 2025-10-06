@@ -50,22 +50,6 @@ enable_remote_login() {
     log "Remote Login (SSH) enabled"
 }
 
-# Configure macOS updates
-configure_macos_updates() {
-    log "Configuring macOS updates for Download Only..."
-    
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool false
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool false
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool false
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool false
-    sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist ConfigDataInstall -bool false
-    
-    sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdate -bool false
-    sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdateRestartRequired -bool false
-    
-    log "macOS updates configured for Download Only mode"
-}
-
 # Download and install Orka VM Tools
 install_orka_vm_tools() {
     log "Installing Orka VM Tools version ${ORKA_VM_TOOLS_VERSION}..."
@@ -110,24 +94,6 @@ cleanup_system() {
     log "System cleanup completed"
 }
 
-erase_terminal_history() {
-    log "Erasing terminal history..."
-    
-    function erase_history() { 
-        local HISTSIZE=0
-        unset HISTFILE
-        history -c
-        history -w
-    }
-    
-    erase_history
-    
-    rm -f "$HOME/.bash_history" 2>/dev/null || true
-    rm -f "$HOME/.zsh_history" 2>/dev/null || true
-    
-    log "Terminal history erased"
-}
-
 schedule_reboot() {
     log "System will reboot in 30 seconds to flush all changes..."
     log "Press Ctrl+C to cancel the reboot if needed"
@@ -149,8 +115,6 @@ main() {
     setup_sys_daemon
     
     cleanup_system
-    
-    erase_terminal_history
     
     log "=== Setup completed successfully ==="
     log "The system will now reboot to ensure all changes are applied"
