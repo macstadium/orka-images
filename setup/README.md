@@ -52,7 +52,7 @@ The script will handle system-level cleanup only
 
 #### On MacOS Tahoe
 
-Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually.
+Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually. It is recommended to disable automatic system updates and to disable Filevault to ensure that VM data isn't deleted when automatic updates are applied.
 
 #### On MacOS Sonoma
 
