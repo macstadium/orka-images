@@ -33,23 +33,15 @@ fi
 
 log "Starting MacOS Orka VM setup..."
 
-enable_screen_sharing() {
-    log "Enabling Screen Sharing..."
-    
-    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
-    
-    log "Screen Sharing enabled"
-}
-
-configure_screen_sharing_access() {
-    log "Configuring Screen Sharing access with kickstart..."
+enable_remote_management() {
+    log "Enabling Remote Management (Screen Sharing via ARDAgent)..."
 
     sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
         -activate -configure -access -on \
         -users "$CURRENT_USER" \
         -privs -all -restart -agent -menu
 
-    log "Screen Sharing configuration applied"
+    log "Remote Management enabled successfully"
 }
 
 enable_remote_login() {
@@ -118,8 +110,7 @@ schedule_reboot() {
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     
-    enable_screen_sharing
-    configure_screen_sharing_access
+    enable_remote_management
     enable_remote_login
     
     install_orka_vm_tools
