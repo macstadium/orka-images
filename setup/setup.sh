@@ -34,13 +34,21 @@ fi
 log "Starting MacOS Orka VM setup..."
 
 enable_screen_sharing() {
-    log "Enabling Screen Sharing for user: $CURRENT_USER"
+    log "Toggling Screen Sharing cleanly"
 
-    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_screensharing && \
+    sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_screensharing
     sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
 
-    log "Screen Sharing enabled"
+    log "Screen Sharing daemon loaded and user added"
+
+    # Run kickstart to fully activate underlying services
+    sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+      -activate -configure -access -on -users "$CURRENT_USER" -privs -all -restart -agent -menu
+
+    log "Screen Sharing is now fully enabled"
 }
+
 
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
