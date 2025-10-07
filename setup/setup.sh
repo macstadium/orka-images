@@ -33,30 +33,48 @@ fi
 
 log "Starting MacOS Orka VM setup..."
 
-enable_screen_sharing() {
-    log "Enabling Screen Sharing..."
-    
+disable_remote_management() {
+    log "Disabling Remote Management (if enabled)..."
     sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-        -activate -configure -access -on -restart -agent -privs -all
-    
-    log "Screen Sharing enabled"
+        -deactivate -stop || warn "Remote Management was not active"
 }
 
-configure_screen_sharing_access() {
-    log "Configuring Screen Sharing access for $CURRENT_USER..."
-    
+enable_screen_sharing() {
+    log "Enabling Screen Sharing..."
+
+    sudo dseditgroup -o create com.apple.access_screensharing || true
+    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_screensharing
+
+    sudo launchctl unload /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
+
     sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-        -configure -users "$CURRENT_USER" -access -on -privs -all
-    
-    log "Screen Sharing configured"
+        -activate -configure -access -on \
+        -users "$CURRENT_USER" \
+        -privs -all -restart -agent -menu
+
+        log "Screen Sharing enabled. Verifying..."
+
+    if sudo launchctl print system/com.apple.screensharing | grep -q "state = running"; then
+        log "Screen Sharing is running"
+    else
+        warn "Screen Sharing did not start. GUI login session may be missing."
+    fi
+}
+
+ensure_autologin() {
+    log "Configuring auto-login for GUI session..."
+
+    sudo defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser "$CURRENT_USER" || \
+        warn "Failed to set autoLoginUser — might require manual GUI login on first boot"
+
+    log "Auto-login setup (may require further setup if password is required)"
 }
 
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
-   
     sudo launchctl enable system/com.openssh.sshd
     sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
-    
     log "Remote Login (SSH) enabled"
 }
 
@@ -117,9 +135,9 @@ schedule_reboot() {
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     
+    ensure_autologin
     enable_screen_sharing
     enable_remote_login
-    configure_screen_sharing_access
     
     install_orka_vm_tools
     
