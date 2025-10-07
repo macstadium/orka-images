@@ -51,7 +51,6 @@ configure_screen_sharing_access() {
     log "Screen Sharing configured"
 }
 
-
 enable_remote_login() {
     log "Enabling Remote Login (SSH)..."
    
@@ -120,6 +119,7 @@ main() {
     
     enable_screen_sharing
     enable_remote_login
+    configure_screen_sharing_access
     
     install_orka_vm_tools
     
