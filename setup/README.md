@@ -13,8 +13,11 @@
 
 - Ensure you have administrator access to the VM
 - Close any important applications (they will be terminated during cleanup)
-- Toggle 'Screen Sharing' off, then back on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH. 
-- Save any work in progress (the VM will reboot automatically)
+- Toggle 'Screen Sharing' off, then back on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
+- Toggle 'Remote Login' off, then back on via the GUI  **System Preferences -> General -> Sharing -> Remote Login**
+- Enable 'Full Disk Access' to SSH via **System Settings > Privacy & Security > Full Disk Access** -> Click the "+" button
+Press `Cmd+Shift+G` and enter: `/usr/libexec/sshd-keygen-wrapper` Click "Open" -> Ensure the checkbox is checked
+- Save any work in progress
 - Close all open applications manually
 - Empty the Trash if desired
 
@@ -55,17 +58,21 @@ The script will handle system-level cleanup only
 
 Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually. It is recommended to disable automatic system updates and to disable Filevault to ensure that VM data isn't deleted when automatic updates are applied.
 
-#### On MacOS Sonoma
-
-Approve Terminal 'System Events' access and 'Finder' access request when prompted during the system cleanup and restart step.
-
 ### What the script does
 
-#### System Configuration
+Automatically configures the following:
 
-- Enables Screen Sharing with VNC password
-- Enables Remote Login (SSH) with full disk access
-- Sets macOS updates to Download Only (prevents automatic updates)
+- Auto-login: Enables automatic GUI login on boot (required for Screen Sharing)
+- Orka VM Tools: Downloads and installs the specified version of Orka VM Tools
+- System Daemon: Sets up the Orka system daemon
+- System Cleanup: Removes temporary files and clears bash history
+
+The following cannot be automated due to macOS security requirements (TCC permissions) and must be configured manually via System Settings:
+
+- FileVault: Must be disabled for auto-login to work
+- Screen Sharing: Must be enabled via GUI to initialize TCC database permissions
+- Remote Login (SSH): Should be enabled via GUI alongside Screen Sharing
+- Full Disk Access: Must be granted for SSH connection via remote login
 
 #### Tool installation
 
@@ -75,15 +82,7 @@ Approve Terminal 'System Events' access and 'Finder' access request when prompte
 
 #### System cleanup
 
-- Closes all non-essential applications
-- Empties trash and cleans temporary files
-- Removes Downloads folder contents
-- Clears cache files
-- Erases terminal history
-
-#### Final steps
-
-- Automatically reboots the VM to flush all changes
+- Cleans temporary files
 
 ### Important notes
 

@@ -23,6 +23,13 @@ error() {
     exit 1
 }
 
+get_macos_version() {
+    sw_vers -productVersion
+}
+
+log "Starting MacOS Orka VM setup..."
+log "Detected macOS version: $(get_macos_version)"
+
 if [[ $EUID -eq 0 ]]; then
     error "This script should not be run as root. Please run as a regular user with sudo privileges."
 fi
@@ -31,76 +38,22 @@ if ! command -v sudo &> /dev/null; then
     error "sudo is required but not available"
 fi
 
-log "Starting MacOS Orka VM setup..."
-
-disable_remote_management() {
-    log "Disabling Remote Management (if enabled)..."
-    sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-        -deactivate -stop || warn "Remote Management was not active"
-}
-
-enable_screen_sharing() {
-    log "Enabling Screen Sharing..."
-
-    sudo dseditgroup -o create com.apple.access_screensharing 2>/dev/null || true
-    sudo dseditgroup -o edit -a "$CURRENT_USER" -t user com.apple.access_screensharing
-
-    sudo defaults write /var/db/launchd.db/com.apple.launchd/overrides.plist com.apple.screensharing -dict Disabled -bool false 2>/dev/null || true
-    
-    sudo defaults write /Library/Preferences/com.apple.screensharing AllowAccessFor -int 0
-    
-    sudo launchctl unload /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
-
-    log "Screen Sharing enabled and configured"
-}
-
 ensure_autologin() {
     log "Configuring auto-login for GUI session..."
 
     sudo defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser "$CURRENT_USER"
-    
     sudo defaults write /Library/Preferences/com.apple.loginwindow DisableReauthForLogin -bool true
-    
     sudo defaults write /Library/Preferences/com.apple.loginwindow SHOWFULLNAME -bool false
-    
     sudo defaults write /Library/Preferences/com.apple.loginwindow GuestEnabled -bool false
-    
-    warn "Note: Auto-login requires one of the following:"
-    warn "  - User account has no password, OR"
-    warn "  - FileVault is disabled, OR"
-    warn "  - kcpassword is configured with the user's password"
     
     log "Auto-login configured for user: $CURRENT_USER"
 }
 
-configure_vnc_password() {
-    log "Checking VNC password configuration..."
-    
-    if sudo defaults read /Library/Preferences/com.apple.VNCSettings Password 2>/dev/null; then
-        log "VNC password already configured"
-    else
-        warn "No VNC password set. Screen Sharing will require user authentication."
-        warn "To set a VNC password, use: System Preferences > Sharing > Screen Sharing > Computer Settings"
-    fi
-}
-
-enable_remote_login() {
-    log "Enabling Remote Login (SSH)..."
-    sudo systemsetup -setremotelogin on 2>/dev/null || {
-        sudo launchctl enable system/com.openssh.sshd 2>/dev/null || true
-        sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
-    }
-    log "Remote Login (SSH) enabled"
-}
-
-# Download and install Orka VM Tools
 install_orka_vm_tools() {
     log "Installing Orka VM Tools version ${ORKA_VM_TOOLS_VERSION}..."
     
     local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/${ORKA_VM_TOOLS_VERSION}/orka-vm-tools.pkg"
     local pkg_path="/tmp/orka-vm-tools.pkg"
-    local pkg_name="orka-vm-tools.pkg"
     
     log "Downloading Orka VM Tools from $pkg_url..."
     curl -fsSL "$pkg_url" -o "$pkg_path" || error "Failed to download Orka VM Tools package"
@@ -117,7 +70,6 @@ install_orka_vm_tools() {
     log "Orka VM Tools ${ORKA_VM_TOOLS_VERSION} installed successfully"
 }
 
-# Download and run the setup-sys-daemon.sh script
 setup_sys_daemon() {
     log "Setting up system daemon..."
     
@@ -132,26 +84,13 @@ cleanup_system() {
     log "Performing minimal system cleanup..."
     
     rm -rf /tmp/* 2>/dev/null || true
-    
     history -c 2>/dev/null || true
     
     log "System cleanup completed"
 }
 
 verify_configuration() {
-    log "Verifying configuration..."
-    
-    if sudo launchctl list | grep -q com.apple.screensharing; then
-        log "✓ Screen Sharing service is loaded"
-    else
-        warn "✗ Screen Sharing service is not loaded"
-    fi
-    
-    if sudo launchctl list | grep -q com.openssh.sshd; then
-        log "✓ SSH service is loaded"
-    else
-        warn "✗ SSH service is not loaded"
-    fi
+    log "Verifying automated configuration..."
 
     local autologin_user
     autologin_user=$(sudo defaults read /Library/Preferences/com.apple.loginwindow autoLoginUser 2>/dev/null || echo "not set")
@@ -160,70 +99,122 @@ verify_configuration() {
     else
         warn "✗ Auto-login not properly configured (currently: $autologin_user)"
     fi
+    
+    local filevault_status
+    filevault_status=$(sudo fdesetup status)
+    if echo "$filevault_status" | grep -q "FileVault is Off"; then
+        log "✓ FileVault is disabled (auto-login will work)"
+    else
+        warn "✗ FileVault is enabled (auto-login will NOT work)"
+    fi
 }
 
-display_post_setup_info() {
-    log "=== Post-Setup Information ==="
+display_manual_steps() {
+    log "=== REQUIRED MANUAL CONFIGURATION ==="
     echo ""
-    log "Screen Sharing will be available after the system reboots and auto-login completes."
+    warn "The following must be configured manually via System Settings before committing this VM:"
     echo ""
-    warn "IMPORTANT: Screen Sharing requires an active GUI session to start."
+    
+    echo "1. DISABLE FILEVAULT (Required for auto-login):"
+    echo "   - Open System Settings > Privacy & Security > FileVault"
+    echo "   - Click 'Turn Off...' and follow prompts"
+    echo "   - OR run: sudo fdesetup disable"
     echo ""
-    log "Troubleshooting steps if Screen Sharing doesn't work after reboot:"
+    
+    echo "2. CONFIGURE SHARING SERVICES:"
+    echo "   - Open System Settings > General > Sharing"
     echo ""
-    echo "  1. Check if GUI session is active:"
-    echo "     who"
-    echo "     ps aux | grep loginwindow"
+    echo "   a) Enable Screen Sharing (Required for VNC access):"
+    echo "      - Toggle 'Screen Sharing' ON"
+    echo "      - Click the 'i' button next to Screen Sharing"
+    echo "      - Ensure 'VNC viewers may control screen with password' is checked"
+    echo "      - Set a VNC password if desired"
     echo ""
-    echo "  2. Check Screen Sharing service status:"
-    echo "     sudo launchctl print system/com.apple.screensharing"
+    echo "   b) Enable Remote Login (Required for SSH access):"
+    echo "      - Toggle 'Remote Login' ON"
     echo ""
-    echo "  3. Try manually loading Screen Sharing after GUI login:"
-    echo "     sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist"
+    
+    echo "3. GRANT FULL DISK ACCESS TO SSH:"
+    echo "   - Open System Settings > Privacy & Security > Full Disk Access"
+    echo "   - Click the '+' button"
+    echo "   - Press Cmd+Shift+G and enter: /usr/libexec/sshd-keygen-wrapper"
+    echo "   - Click 'Open' to add it to the list"
+    echo "   - Ensure the checkbox next to 'sshd-keygen-wrapper' is checked"
     echo ""
-    echo "  4. If auto-login fails:"
-    echo "     - Verify FileVault is disabled: sudo fdesetup status"
-    echo "     - Check if user has a password set"
-    echo "     - Manually log in once via console, then test again"
+    
+    echo "4. REMOVE USER PASSWORD (Optional, for passwordless auto-login):"
+    echo "   - Run: sudo dscl . -passwd /Users/$CURRENT_USER ''"
+    echo "   - WARNING: This removes password protection from the account"
     echo ""
 }
 
-schedule_reboot() {
-    log "System will reboot in 30 seconds to apply all changes..."
-    log "Press Ctrl+C to cancel the reboot if needed"
-    
-    sleep 30
-    
-    sudo shutdown -r now "Rebooting to apply VM changes" 2>/dev/null || sudo reboot
+display_verification_steps() {
+    log "=== VERIFICATION STEPS ==="
+    echo ""
+    log "After completing manual configuration above:"
+    echo ""
+    echo "1. Reboot the VM"
+    echo ""
+    echo "2. Verify auto-login works:"
+    echo "   who"
+    echo "   # Should show: $CURRENT_USER  console  <date>"
+    echo ""
+    echo "3. Verify Screen Sharing is active:"
+    echo "   sudo lsof -i :5900"
+    echo "   # Should show a process listening on port 5900"
+    echo ""
+    echo "4. Verify SSH is working:"
+    echo "   # From your laptop: ssh $CURRENT_USER@<vm-ip>"
+    echo ""
+    echo "5. Test VNC connection:"
+    echo "   # From your laptop: open vnc://<vm-ip>"
+    echo ""
+    echo "6. Once everything works, commit this VM to an Orka image"
+    echo ""
+}
+
+display_troubleshooting() {
+    log "=== TROUBLESHOOTING ==="
+    echo ""
+    echo "If Screen Sharing doesn't work:"
+    echo "  - Check: sudo launchctl print system/com.apple.screensharing | grep state"
+    echo "  - May show 'not running' until first connection (this is normal)"
+    echo "  - Verify Screen Sharing is enabled in System Settings > Sharing"
+    echo ""
+    echo "If auto-login doesn't work:"
+    echo "  - Check FileVault status: sudo fdesetup status"
+    echo "  - Must show 'FileVault is Off'"
+    echo "  - Check if user has password set"
+    echo ""
+    echo "If SSH doesn't work:"
+    echo "  - Verify Remote Login is enabled in System Settings > Sharing"
+    echo "  - Check: sudo launchctl list | grep sshd"
+    echo ""
 }
 
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     echo ""
     
-    disable_remote_management
-    
     ensure_autologin
-    
-    enable_screen_sharing
-    enable_remote_login
-    
-    configure_vnc_password
-    
     install_orka_vm_tools
     setup_sys_daemon
-
     cleanup_system
     
     echo ""
     verify_configuration
     
     echo ""
-    log "=== Setup completed successfully ==="
+    log "=== Automated Setup Completed ==="
+    echo ""
     
-    display_post_setup_info
+    display_manual_steps
+    display_verification_steps
+    display_troubleshooting
     
-    schedule_reboot
+    echo ""
+    warn "DO NOT REBOOT until you have completed the manual configuration steps above!"
+    echo ""
 }
 
 trap 'error "Script interrupted by user"' INT TERM
