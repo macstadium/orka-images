@@ -9,10 +9,11 @@
 - Internet connection for downloading packages
 - Terminal access (via SSH, Screen Sharing, or direct console)
 
-### Before running
+### Before running the script
 
 - Ensure you have administrator access to the VM
 - Close any important applications (they will be terminated during cleanup)
+- Toggle 'Screen Sharing' off, then back on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH. 
 - Save any work in progress (the VM will reboot automatically)
 - Close all open applications manually
 - Empty the Trash if desired
