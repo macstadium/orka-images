@@ -69,22 +69,12 @@ setup_sys_daemon() {
     log "System daemon setup completed"
 }
 
-cleanup_system() {
-    log "Performing minimal system cleanup..."
-    
-    rm -rf /tmp/* 2>/dev/null || true
-    history -c 2>/dev/null || true
-    
-    log "System cleanup completed"
-}
-
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     echo ""
     
     install_orka_vm_tools
     setup_sys_daemon
-    cleanup_system
     
     echo ""
     log "=== Automated Setup Completed ==="

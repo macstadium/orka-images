@@ -1,6 +1,6 @@
 # Orka VM Setup Script Usage
 
-## This script automates the configuration and setup of macOS Orka VMs for optimal performance. It configures system settings, installs required tools, and prepares the VM for use with Orka
+## This script automates a portion of the configuration and setup of macOS Orka VMs for optimal performance. It installs required tools, preparing the VM for use with Orka
 
 ### System requirements
 
@@ -11,20 +11,15 @@
 
 ### Before running the script
 
-- Ensure you have administrator access to the VM
-- Close any important applications (they will be terminated during cleanup)
-- Toggle 'Screen Sharing' off, then back on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
+- Toggle 'Screen Sharing' on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
 ![Screen sharing toggled 'on' in system settings](./assets/screensharing.png)
-- Toggle 'Remote Login' off, then back on via the GUI  **System Preferences -> General -> Sharing -> Remote Login**
+- Toggle 'Remote Login' on via the GUI  **System Preferences -> General -> Sharing -> Remote Login**
 ![Remote login enabled in system settings](./assets/remotelogin.png)
-- Enable 'Full Disk Access' to SSH via **System Settings > Privacy & Security > Full Disk Access** -> Click the "+" button
-and select 'Allow full disk access for remote users'
+- Enable 'Full Disk Access' to SSH via the GUI **System Settings -> General -> Sharing**, click the ⓘ icon next to "Remote Login", and select 'Allow full disk access for remote users'
 ![Full disk access enabled in system settings](./assets/fulldiskremoteuser.png)
 - Save any work in progress
 - Close all open applications manually
 - Empty the Trash if desired
-
-The script will handle system-level cleanup only
 
 ### Installation
 
@@ -38,7 +33,6 @@ The script will handle system-level cleanup only
 
 #### On MacOS Sequoia
 
-- When prompted for Terminal permissions access, click 'Accept'
 - Enter your password when prompted during the script installation process
 - When the script shell displays `sh-3.2#` type `exit` and press `Enter` to continue script installation
 - Upon system reboot, re-open the Terminal application and enter `sudo launchctl list sysctl` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
@@ -67,16 +61,9 @@ Same as above, though users may experience a delay during the system cleanup and
 
 - Downloads and installs the current version of Orka VM Tools, default is v3.5.0
 - Downloads and runs Orka `sys-daemon.sh` setup script (this is used to optimize the Screen Share and VNC performance of the VM)
-- Automatically cleans up temporary installation files
 
 The following cannot be automated due to macOS security requirements (TCC permissions) and must be configured manually via System Settings:
 
 - Screen Sharing: Must be enabled via GUI to initialize TCC database permissions
 - Remote Login (SSH): Should be enabled via GUI alongside Screen Sharing
 - Full Disk Access: Must be granted for SSH connection via remote login
-
-### Important notes
-
-- Change default passwords in production environments
-- Restrict network access as needed for your security policy
-- Ensure enabled services match your requirements
