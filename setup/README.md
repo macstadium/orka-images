@@ -5,7 +5,6 @@
 ### System requirements
 
 - macOS IPSW file (Tahoe, Sequoia, or Sonoma)
-- Admin/sudo privileges on the VM
 - Internet connection for downloading packages
 - Terminal access (via SSH, Screen Sharing, or direct console)
 
@@ -31,11 +30,11 @@
 
 ### Installation steps when running the script
 
-#### On MacOS Sequoia
-
-- Enter your password when prompted during the script installation process
-- When the script shell displays `sh-3.2#` type `exit` and press `Enter` to continue script installation
-- Upon system reboot, re-open the Terminal application and enter `sudo launchctl list sysctl` to confirm the Orka sys-daemon script has installed. You should see an output similar to:
+- Make the script executable if you have downloaded it directly by entering: `chmod +x /Users/<username>/<folder>/setup.sh` in the Terminal
+- Select 'Accept' when prompted by the Terminal application to begin running the script
+- Enter your password when prompted during the script installation process step that installs the Orka VM tools
+- Close and re-open the Terminal application
+- Enter `sudo launchctl list sysctl` and input your password when prompted. This step is optional, but useful to confirm the Orka sys-daemon script has installed successfully. You should see an output similar to:
 
 ```markdown
 "LimitLoadToSessionType" = "System";
@@ -50,10 +49,6 @@
 "net.link.generic.system.hwcksum_rx=0";
 "net.inet.tcp.tso=0"; );
 ```
-
-#### On MacOS Tahoe
-
-Same as above, though users may experience a delay during the system cleanup and restart step. If the system does not reboot within 60 seconds, reboot manually. It is recommended to disable automatic system updates and to disable Filevault to ensure that VM data isn't deleted when automatic updates are applied.
 
 ### What the script does
 
