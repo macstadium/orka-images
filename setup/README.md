@@ -11,11 +11,17 @@
 ### Before running the script
 
 - Toggle 'Screen Sharing' on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
-![Screen sharing toggled 'on' in system settings](./assets/screensharing.png)
+
+![Screen sharing toggled 'on' in system settings](../assets/screensharing.png)
+
 - Toggle 'Remote Login' on via the GUI  **System Preferences -> General -> Sharing -> Remote Login**
-![Remote login enabled in system settings](./assets/remotelogin.png)
-- Enable 'Full Disk Access' to SSH via the GUI **System Settings -> General -> Sharing**, click the ⓘ icon next to "Remote Login", and select 'Allow full disk access for remote users'
-![Full disk access enabled in system settings](./assets/fulldiskremoteuser.png)
+
+![Remote login enabled in system settings](../assets/remotelogin.png)
+
+- Enable 'Full Disk Access' to SSH via the GUI **System Settings -> General -> Sharing**. This should also automatically enable Full Disk Access for remote users by default when this option is selected. If 'Allow Full Disk Access' is for any reason not enabled, you will want to do so by clicking the ⓘ icon next to "Remote Login", and selecting 'Allow full disk access for remote users'.
+
+![Full disk access enabled in system settings](../assets/fulldiskremoteuser.png)
+
 - Save any work in progress
 - Close all open applications manually
 - Empty the Trash if desired
