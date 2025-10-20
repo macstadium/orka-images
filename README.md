@@ -1,6 +1,6 @@
 # Orka Images
 
-## Repository with Orka 3.2 OCI-compatible images.
+## Repository with Orka 3.2 OCI-compatible images
 
 These images can be used with Orka Desktop (via the GUI), or with Orka via the [orka3 CLI](https://orkadocs.macstadium.com/docs/cli-reference)
 
@@ -34,6 +34,10 @@ spec:
   image: ghcr.io/macstadium/orka-images/sonoma:latest
 ```
 
+### VM setup from IPSW script
+
+To get started with Orka using an IPSW and Orka Desktop, use the [setup.sh script](./setup/README.md).
+
 ### SIP Disabled Sonoma
 
 To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy with the following image label:
@@ -50,7 +54,7 @@ To deploy a Ventura VM with SIP disabled, run:
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
 
-### MacOS 26 Tahoe 
+### MacOS 26 Tahoe
 
 To deploy a Tahoe VM with Orka Desktop:
 
@@ -58,6 +62,7 @@ To deploy a Tahoe VM with Orka Desktop:
 1. Select 'Pull from OCI registry'
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:latest`
+
 ```sh  
   ghcr.io/macstadium/orka-images/tahoe:latest
 ```
@@ -68,6 +73,7 @@ To deploy a SIP-disabled Tahoe VM with Orka Desktop:
 1. Select 'Pull from OCI registry'
 1. Name VM and set parameters (CPUs, Memory, HD size)
 1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:no-sip`
+
 ```sh  
   ghcr.io/macstadium/orka-images/tahoe:no-sip
 ```
