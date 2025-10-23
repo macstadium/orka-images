@@ -4,13 +4,28 @@
 
 ### System requirements
 
+- Orka Desktop [v3.1.0](https://github.com/macstadium/orka-desktop/releases/tag/3.1.0)
 - macOS IPSW file (Tahoe, Sequoia, or Sonoma)
 - Internet connection for downloading packages
 - Terminal access (via SSH, Screen Sharing, or direct console)
 
 ### Before running the script
 
-- Toggle 'Screen Sharing' on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
+- Open Orka Desktop and select 'Create new VM'
+
+![Create new VM option in the Orka Desktop GUI](../assets/createnewvm.png)
+
+- Select 'Other' from the 'Restore file (IPSW)' option in the GUI and click on your chosen IPSW file
+
+![Select 'Other' in the 'Restore file (IPSW) section in the Orka Desktop GUI'](../assets/OtherIPSW.png)
+
+- Click 'Install' and wait for the IPSW installation process to complete
+
+![Click 'Install' in the Orka Desktop GUI](../assets/InstallIPSWOrkaDesktop.png)
+
+- Start your VM by clicking 'Start'. You will need to go through the initial MacOS setup steps such as setting a language, Filevault permissions, location sharing, timezone, etc.
+
+- Once you have completed the initial MacOS setup and are successfully logged into your VM, Toggle 'Screen Sharing' on via the GUI **System Preferences -> General -> Sharing -> Screen Sharing** so that system settings persist when connecting to a VM via SSH.
 
 ![Screen sharing toggled 'on' in system settings](../assets/screensharing.png)
 
