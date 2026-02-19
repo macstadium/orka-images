@@ -1,0 +1,197 @@
+name: Update vm-tools in Base Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      vmToolsVersion:
+        description: 'Version of orka-vm-tools to install (e.g., 3.5.2)'
+        required: false
+        default: '3.5.2'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  update:
+    name: ${{ matrix.name }}:${{ matrix.tag }}
+    runs-on:
+      - self-hosted
+      - arm-mini-002
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - name: tahoe
+            tag: latest
+          - name: tahoe
+            tag: 200-gb
+          - name: sequoia
+            tag: latest
+          - name: sequoia
+            tag: 200-gb
+          - name: sonoma
+            tag: latest
+          - name: monterey
+            tag: latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set VM name
+        id: vars
+        run: |
+          echo "VM_NAME=vm-tools-updater-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+
+      - name: Download vm-tools installer and setup scripts
+        run: |
+          curl -fsSL \
+            "https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/${{ inputs.vmToolsVersion }}/orka-vm-tools.pkg" \
+            -o orka-vm-tools.pkg
+          curl -fsSL \
+            "https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh" \
+            -o setup-sys-daemon.sh
+
+      - name: Pull image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          orka-engine image pull \
+            --username ${{ github.actor }} \
+            --password "${GITHUB_TOKEN}" \
+            ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
+
+      - name: Run VM
+        run: |
+          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+            --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }} \
+            -d
+
+      - name: Wait for VM IP
+        timeout-minutes: 5
+        id: vm-ip
+        run: |
+          output=""
+          vm_name="${{ steps.vars.outputs.VM_NAME }}"
+          jq_query=".[] | select(.name == \"$vm_name\") | .ip"
+          while [ -z "$output" ]; do
+            output=$(orka-engine vm list -o json | jq -r "$jq_query")
+            sleep 1
+          done
+          echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
+
+      - name: SCP files into VM
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            orka-vm-tools.pkg setup-sys-daemon.sh \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
+
+      - name: Install vm-tools
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S installer -pkg ~/orka-vm-tools.pkg -target /"
+
+      - name: Install network tuning daemon
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S bash ~/setup-sys-daemon.sh"
+
+      - name: Configure remote access
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          VM_IP="${{ steps.vm-ip.outputs.VM_IP }}"
+
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${VM_IP}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S systemsetup -setremotelogin on"
+
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${VM_IP}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true"
+
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${VM_IP}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true"
+
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${VM_IP}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all"
+
+      - name: Set admin user password
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S dscl . -passwd /Users/admin admin"
+
+      - name: Verify vm-tools version
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "/Applications/orka-vm-tools/orka-vm-tools version"
+
+      - name: Reboot VM
+        continue-on-error: true
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S reboot"
+
+      - name: Wait for VM to come back online
+        timeout-minutes: 5
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          vm_ip="${{ steps.vm-ip.outputs.VM_IP }}"
+          while ! sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${vm_ip}" "echo 'VM is back online'" &>/dev/null; do
+              sleep 1
+          done
+
+      - name: Save and push updated image
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          orka-engine vm save ${{ steps.vars.outputs.VM_NAME }} \
+            ${{ steps.vars.outputs.TEMP_NAME }}
+
+          orka-engine image push \
+            --username ${{ github.actor }} \
+            --password "${GITHUB_TOKEN}" \
+            ${{ steps.vars.outputs.TEMP_NAME }} \
+            ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          orka-engine vm delete ${{ steps.vars.outputs.VM_NAME }} || true
