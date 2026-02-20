@@ -55,6 +55,33 @@ jobs:
           curl -fsSL \
             "https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh" \
             -o setup-sys-daemon.sh
+          cat > setup-remote-access.sh << 'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          PASS="$1"
+          MACOS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+
+          # Remote Login (SSH)
+          if [ "$MACOS_MAJOR" -ge 26 ]; then
+            echo "$PASS" | sudo -S launchctl enable system/com.openssh.sshd
+            echo "$PASS" | sudo -S launchctl kickstart -k system/com.openssh.sshd
+          else
+            echo "$PASS" | sudo -S systemsetup -setremotelogin on
+            echo "$PASS" | sudo -S launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
+          fi
+
+          # Screen Sharing
+          if [ "$MACOS_MAJOR" -ge 26 ]; then
+            echo "$PASS" | sudo -S launchctl enable system/com.apple.screensharing
+            echo "$PASS" | sudo -S launchctl kickstart -k system/com.apple.screensharing
+          else
+            echo "$PASS" | sudo -S launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+          fi
+
+          # Remote Management (ARD/VNC)
+          echo "$PASS" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on -restart -agent -privs -all
+          EOF
 
       - name: Pull image
         env:
@@ -90,7 +117,7 @@ jobs:
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            orka-vm-tools.pkg setup-sys-daemon.sh \
+            orka-vm-tools.pkg setup-sys-daemon.sh setup-remote-access.sh \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
 
       - name: Install vm-tools
@@ -115,27 +142,10 @@ jobs:
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
-          VM_IP="${{ steps.vm-ip.outputs.VM_IP }}"
-
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${VM_IP}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S systemsetup -setremotelogin on"
-
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${VM_IP}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true"
-
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${VM_IP}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true"
-
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${VM_IP}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all"
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "bash ~/setup-remote-access.sh ${VM_DEFAULT_PASSWORD}"
 
       - name: Set admin user password
         env:
