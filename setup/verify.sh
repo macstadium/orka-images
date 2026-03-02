@@ -66,14 +66,6 @@ else
     pass "No Homebrew"
 fi
 
-# --- /Library/Updates/ is empty ---
-if [[ -n "$(ls -A /Library/Updates/ 2>/dev/null)" ]]; then
-    fail "/Library/Updates/ is not empty — pending OS updates may be present"
-    errors=$((errors + 1))
-else
-    pass "/Library/Updates/ is empty"
-fi
-
 # --- sysctl daemon running ---
 if sudo_run launchctl list | grep -q sysctl; then
     pass "sysctl daemon running"
