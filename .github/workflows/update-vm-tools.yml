@@ -24,16 +24,22 @@ jobs:
         include:
           - name: tahoe
             tag: latest
+            disk_gb: 90
           - name: tahoe
             tag: 200-gb
+            disk_gb: 200
           - name: sequoia
             tag: latest
+            disk_gb: 90
           - name: sequoia
             tag: 200-gb
+            disk_gb: 200
           - name: sonoma
             tag: latest
+            disk_gb: 90
           - name: monterey
             tag: latest
+            disk_gb: 90
     defaults:
       run:
         shell: bash
@@ -82,6 +88,73 @@ jobs:
           echo "$PASS" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate -configure -access -on -restart -agent -privs -all
           EOF
+          cat > verify-image.sh << 'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          EXPECTED_GB="$1"
+          ERRORS=0
+
+          echo "=== Image Verification ==="
+
+          # Disk size (±20% tolerance)
+          ACTUAL_GB=$(df -k / | awk 'NR==2{print int($2/1024/1024)}')
+          MIN_GB=$(( EXPECTED_GB * 8 / 10 ))
+          MAX_GB=$(( EXPECTED_GB * 12 / 10 ))
+          if [ "$ACTUAL_GB" -lt "$MIN_GB" ] || [ "$ACTUAL_GB" -gt "$MAX_GB" ]; then
+            echo "FAIL: Disk is ${ACTUAL_GB}GB, expected ~${EXPECTED_GB}GB"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "PASS: Disk size ${ACTUAL_GB}GB"
+          fi
+
+          # No Homebrew
+          if [ -d /opt/homebrew ] || [ -d /usr/local/Homebrew ]; then
+            echo "FAIL: Homebrew found on image"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "PASS: No Homebrew"
+          fi
+
+          # No pending update packages
+          if [ -n "$(ls -A /Library/Updates 2>/dev/null)" ]; then
+            echo "FAIL: /Library/Updates is not empty"
+            ls -la /Library/Updates/
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "PASS: /Library/Updates is empty"
+          fi
+
+          # sysctl daemon
+          if sudo launchctl list | grep -q sysctl; then
+            echo "PASS: sysctl daemon running"
+          else
+            echo "FAIL: sysctl daemon not running"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # SSH
+          if sudo launchctl list | grep -q com.openssh.sshd; then
+            echo "PASS: SSH running"
+          else
+            echo "FAIL: SSH not running"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Screen sharing
+          if sudo launchctl list | grep -q com.apple.screensharing; then
+            echo "PASS: Screen sharing running"
+          else
+            echo "FAIL: Screen sharing not running"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          echo ""
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "=== $ERRORS check(s) FAILED — image will not be pushed ==="
+            exit 1
+          fi
+          echo "=== All checks passed ==="
+          EOF
 
       - name: Pull image
         env:
@@ -117,7 +190,7 @@ jobs:
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            orka-vm-tools.pkg setup-sys-daemon.sh setup-remote-access.sh \
+            orka-vm-tools.pkg setup-sys-daemon.sh setup-remote-access.sh verify-image.sh \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
 
       - name: Install vm-tools
@@ -186,6 +259,15 @@ jobs:
             "admin@${vm_ip}" "echo 'VM is back online'" &>/dev/null; do
               sleep 1
           done
+
+      - name: Verify image
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "bash ~/verify-image.sh ${{ matrix.disk_gb }}"
 
       - name: Save and push updated image
         timeout-minutes: 10
