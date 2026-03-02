@@ -104,7 +104,7 @@ jobs:
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} bash ~/setup.sh"
+            "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/setup.sh"
 
       - name: Set admin user password
         env:
@@ -144,7 +144,7 @@ jobs:
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "bash ~/verify.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
+            "VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/verify.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
 
       - name: Save and push updated image
         timeout-minutes: 10
