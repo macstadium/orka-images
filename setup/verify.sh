@@ -13,6 +13,15 @@ NC="\033[0m"
 pass() { echo -e "${GREEN}[PASS]${NC} $1"; }
 fail() { echo -e "${RED}[FAIL]${NC} $1" >&2; }
 
+# When VM_DEFAULT_PASSWORD is set (non-interactive SSH), pipe it to sudo -S.
+sudo_run() {
+    if [[ -n "${VM_DEFAULT_PASSWORD:-}" ]]; then
+        echo "$VM_DEFAULT_PASSWORD" | sudo -S "$@"
+    else
+        sudo "$@"
+    fi
+}
+
 if [[ $# -ne 2 ]]; then
     echo "Usage: $0 <expected_disk_gb> <expected_vm_tools_version>" >&2
     exit 1
@@ -28,7 +37,7 @@ if [[ ! -x /Applications/orka-vm-tools/orka-vm-tools ]]; then
     fail "orka-vm-tools binary not found at /Applications/orka-vm-tools/orka-vm-tools"
     errors=$((errors + 1))
 else
-    installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>/dev/null \
+    installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>&1 \
         | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     if [[ "$installed_version" != "$EXPECTED_VERSION" ]]; then
         fail "orka-vm-tools version mismatch: installed ${installed_version}, expected ${EXPECTED_VERSION}"
@@ -66,7 +75,7 @@ else
 fi
 
 # --- sysctl daemon running ---
-if launchctl list | grep -q sysctl; then
+if sudo_run launchctl list | grep -q sysctl; then
     pass "sysctl daemon running"
 else
     fail "sysctl daemon not running"
@@ -74,7 +83,7 @@ else
 fi
 
 # --- SSH running ---
-if launchctl list | grep -q com.openssh.sshd; then
+if sudo_run launchctl list | grep -q com.openssh.sshd; then
     pass "SSH running"
 else
     fail "SSH (com.openssh.sshd) not running"
@@ -82,7 +91,7 @@ else
 fi
 
 # --- Screen Sharing running ---
-if launchctl list | grep -q com.apple.screensharing; then
+if sudo_run launchctl list | grep -q com.apple.screensharing; then
     pass "Screen Sharing running"
 else
     fail "Screen Sharing (com.apple.screensharing) not running"
