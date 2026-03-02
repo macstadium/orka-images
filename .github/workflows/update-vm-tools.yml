@@ -92,9 +92,19 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
           EXPECTED_GB="$1"
+          EXPECTED_VM_TOOLS_VERSION="$2"
           ERRORS=0
 
           echo "=== Image Verification ==="
+
+          # orka-vm-tools version
+          INSTALLED_VERSION=$(/Applications/orka-vm-tools/orka-vm-tools version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ "$INSTALLED_VERSION" != "$EXPECTED_VM_TOOLS_VERSION" ]; then
+            echo "FAIL: orka-vm-tools is ${INSTALLED_VERSION}, expected ${EXPECTED_VM_TOOLS_VERSION}"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "PASS: orka-vm-tools ${INSTALLED_VERSION}"
+          fi
 
           # Disk size (±20% tolerance)
           ACTUAL_GB=$(df -k / | awk 'NR==2{print int($2/1024/1024)}')
@@ -229,15 +239,6 @@ jobs:
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
             "echo ${VM_DEFAULT_PASSWORD} | sudo -S dscl . -passwd /Users/admin admin"
 
-      - name: Verify vm-tools version
-        env:
-          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
-        run: |
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "/Applications/orka-vm-tools/orka-vm-tools version"
-
       - name: Reboot VM
         continue-on-error: true
         env:
@@ -267,7 +268,7 @@ jobs:
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "bash ~/verify-image.sh ${{ matrix.disk_gb }}"
+            "bash ~/verify-image.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
 
       - name: Save and push updated image
         timeout-minutes: 10
