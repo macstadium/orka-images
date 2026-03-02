@@ -69,17 +69,53 @@ setup_sys_daemon() {
     log "System daemon setup completed"
 }
 
+verify() {
+    log "=== Verifying Setup ==="
+
+    local errors=0
+
+    # orka-vm-tools installed and correct version
+    if [[ ! -x /Applications/orka-vm-tools/orka-vm-tools ]]; then
+        warn "orka-vm-tools binary not found"
+        errors=$((errors + 1))
+    else
+        local installed_version
+        installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [[ "$installed_version" != "$ORKA_VM_TOOLS_VERSION" ]]; then
+            warn "orka-vm-tools version mismatch: installed ${installed_version}, expected ${ORKA_VM_TOOLS_VERSION}"
+            errors=$((errors + 1))
+        else
+            log "orka-vm-tools ${installed_version} installed"
+        fi
+    fi
+
+    # sysctl daemon running
+    if sudo launchctl list | grep -q sysctl; then
+        log "sysctl daemon running"
+    else
+        warn "sysctl daemon not running"
+        errors=$((errors + 1))
+    fi
+
+    if [[ "$errors" -gt 0 ]]; then
+        error "$errors verification check(s) failed"
+    fi
+
+    log "All checks passed"
+}
+
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     echo ""
-    
+
     install_orka_vm_tools
     setup_sys_daemon
-    
+    verify
+
     echo ""
     log "=== Automated Setup Completed ==="
     echo ""
-    
+
 }
 
 trap 'error "Script interrupted by user"' INT TERM
