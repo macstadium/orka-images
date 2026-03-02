@@ -47,124 +47,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Preflight check
+        run: |
+          if ! command -v orka-engine &>/dev/null; then
+            echo "orka-engine not found on runner. Register an arm-mini-002 runner with orka-engine pre-installed." >&2
+            exit 1
+          fi
+
       - name: Set VM name
         id: vars
         run: |
           echo "VM_NAME=vm-tools-updater-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
           echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
-
-      - name: Download vm-tools installer and setup scripts
-        run: |
-          curl -fsSL \
-            "https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/${{ inputs.vmToolsVersion }}/orka-vm-tools.pkg" \
-            -o orka-vm-tools.pkg
-          curl -fsSL \
-            "https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh" \
-            -o setup-sys-daemon.sh
-          cat > setup-remote-access.sh << 'EOF'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          PASS="$1"
-          MACOS_MAJOR=$(sw_vers -productVersion | cut -d. -f1)
-
-          # Remote Login (SSH)
-          if [ "$MACOS_MAJOR" -ge 26 ]; then
-            echo "$PASS" | sudo -S launchctl enable system/com.openssh.sshd
-            echo "$PASS" | sudo -S launchctl kickstart -k system/com.openssh.sshd
-          else
-            echo "$PASS" | sudo -S systemsetup -setremotelogin on
-            echo "$PASS" | sudo -S launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
-          fi
-
-          # Screen Sharing
-          if [ "$MACOS_MAJOR" -ge 26 ]; then
-            echo "$PASS" | sudo -S launchctl enable system/com.apple.screensharing
-            echo "$PASS" | sudo -S launchctl kickstart -k system/com.apple.screensharing
-          else
-            echo "$PASS" | sudo -S launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
-          fi
-
-          # Remote Management (ARD/VNC)
-          echo "$PASS" | sudo -S /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate -configure -access -on -restart -agent -privs -all
-          EOF
-          cat > verify-image.sh << 'EOF'
-          #!/usr/bin/env bash
-          set -euo pipefail
-          EXPECTED_GB="$1"
-          EXPECTED_VM_TOOLS_VERSION="$2"
-          ERRORS=0
-
-          echo "=== Image Verification ==="
-
-          # orka-vm-tools version
-          INSTALLED_VERSION=$(/Applications/orka-vm-tools/orka-vm-tools version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-          if [ "$INSTALLED_VERSION" != "$EXPECTED_VM_TOOLS_VERSION" ]; then
-            echo "FAIL: orka-vm-tools is ${INSTALLED_VERSION}, expected ${EXPECTED_VM_TOOLS_VERSION}"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "PASS: orka-vm-tools ${INSTALLED_VERSION}"
-          fi
-
-          # Disk size (±20% tolerance)
-          ACTUAL_GB=$(df -k / | awk 'NR==2{print int($2/1024/1024)}')
-          MIN_GB=$(( EXPECTED_GB * 8 / 10 ))
-          MAX_GB=$(( EXPECTED_GB * 12 / 10 ))
-          if [ "$ACTUAL_GB" -lt "$MIN_GB" ] || [ "$ACTUAL_GB" -gt "$MAX_GB" ]; then
-            echo "FAIL: Disk is ${ACTUAL_GB}GB, expected ~${EXPECTED_GB}GB"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "PASS: Disk size ${ACTUAL_GB}GB"
-          fi
-
-          # No Homebrew
-          if [ -d /opt/homebrew ] || [ -d /usr/local/Homebrew ]; then
-            echo "FAIL: Homebrew found on image"
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "PASS: No Homebrew"
-          fi
-
-          # No pending update packages
-          if [ -n "$(ls -A /Library/Updates 2>/dev/null)" ]; then
-            echo "FAIL: /Library/Updates is not empty"
-            ls -la /Library/Updates/
-            ERRORS=$((ERRORS + 1))
-          else
-            echo "PASS: /Library/Updates is empty"
-          fi
-
-          # sysctl daemon
-          if sudo launchctl list | grep -q sysctl; then
-            echo "PASS: sysctl daemon running"
-          else
-            echo "FAIL: sysctl daemon not running"
-            ERRORS=$((ERRORS + 1))
-          fi
-
-          # SSH
-          if sudo launchctl list | grep -q com.openssh.sshd; then
-            echo "PASS: SSH running"
-          else
-            echo "FAIL: SSH not running"
-            ERRORS=$((ERRORS + 1))
-          fi
-
-          # Screen sharing
-          if sudo launchctl list | grep -q com.apple.screensharing; then
-            echo "PASS: Screen sharing running"
-          else
-            echo "FAIL: Screen sharing not running"
-            ERRORS=$((ERRORS + 1))
-          fi
-
-          echo ""
-          if [ "$ERRORS" -gt 0 ]; then
-            echo "=== $ERRORS check(s) FAILED — image will not be pushed ==="
-            exit 1
-          fi
-          echo "=== All checks passed ==="
-          EOF
 
       - name: Pull image
         env:
@@ -194,41 +88,23 @@ jobs:
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
 
-      - name: SCP files into VM
+      - name: Copy scripts into VM
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            orka-vm-tools.pkg setup-sys-daemon.sh setup-remote-access.sh verify-image.sh \
+            setup/setup.sh setup/verify.sh \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
 
-      - name: Install vm-tools
+      - name: Run setup
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S installer -pkg ~/orka-vm-tools.pkg -target /"
-
-      - name: Install network tuning daemon
-        env:
-          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
-        run: |
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S bash ~/setup-sys-daemon.sh"
-
-      - name: Configure remote access
-        env:
-          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
-        run: |
-          sshpass -p "${VM_DEFAULT_PASSWORD}" \
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "bash ~/setup-remote-access.sh ${VM_DEFAULT_PASSWORD}"
+            "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} bash ~/setup.sh"
 
       - name: Set admin user password
         env:
@@ -268,7 +144,7 @@ jobs:
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "bash ~/verify-image.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
+            "bash ~/verify.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
 
       - name: Save and push updated image
         timeout-minutes: 10
