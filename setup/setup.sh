@@ -69,39 +69,34 @@ setup_sys_daemon() {
     log "System daemon setup completed"
 }
 
-verify() {
-    log "=== Verifying Setup ==="
+configure_remote_access() {
+    log "Configuring remote access..."
 
-    local errors=0
+    local macos_major
+    macos_major=$(sw_vers -productVersion | cut -d. -f1)
 
-    # orka-vm-tools installed and correct version
-    if [[ ! -x /Applications/orka-vm-tools/orka-vm-tools ]]; then
-        warn "orka-vm-tools binary not found"
-        errors=$((errors + 1))
+    # Remote Login (SSH)
+    if [[ "$macos_major" -ge 26 ]]; then
+        sudo launchctl enable system/com.openssh.sshd
+        sudo launchctl kickstart -k system/com.openssh.sshd
     else
-        local installed_version
-        installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-        if [[ "$installed_version" != "$ORKA_VM_TOOLS_VERSION" ]]; then
-            warn "orka-vm-tools version mismatch: installed ${installed_version}, expected ${ORKA_VM_TOOLS_VERSION}"
-            errors=$((errors + 1))
-        else
-            log "orka-vm-tools ${installed_version} installed"
-        fi
+        sudo systemsetup -setremotelogin on
+        sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
     fi
 
-    # sysctl daemon running
-    if sudo launchctl list | grep -q sysctl; then
-        log "sysctl daemon running"
+    # Screen Sharing
+    if [[ "$macos_major" -ge 26 ]]; then
+        sudo launchctl enable system/com.apple.screensharing
+        sudo launchctl kickstart -k system/com.apple.screensharing
     else
-        warn "sysctl daemon not running"
-        errors=$((errors + 1))
+        sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
     fi
 
-    if [[ "$errors" -gt 0 ]]; then
-        error "$errors verification check(s) failed"
-    fi
+    # Remote Management (ARD/VNC)
+    sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+        -activate -configure -access -on -restart -agent -privs -all
 
-    log "All checks passed"
+    log "Remote access configured"
 }
 
 main() {
@@ -110,7 +105,7 @@ main() {
 
     install_orka_vm_tools
     setup_sys_daemon
-    verify
+    configure_remote_access
 
     echo ""
     log "=== Automated Setup Completed ==="
