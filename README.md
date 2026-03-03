@@ -54,16 +54,16 @@ To deploy a Ventura VM with SIP disabled, run:
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
 
-### MacOS 26.0 Tahoe
+### MacOS 26.0.1 Tahoe
 
 > [!NOTE]
-> macOS 26.0 is currently only supported for guest VMs running on Orka version 3.5.0 and above. 
+> macOS 26.0.1 is currently only supported for guest VMs running on Orka version 3.5.0 and above. 
 
 macOS 26.1 includes [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that impact certain functionality when running as a virtual machine. Users should be aware of this Apple-imposed limitation when planning their deployments. We strongly recommend reviewing the Apple release notes linked above to determine if this limitation affects your specific Orka workflows before deploying macOS 26.1 VMs in production environments.
 
-Orka 3.5.0+ **does not** currently support macOS 26.2, and these images are provided for testing purposes only. 
+Orka 3.5.0+ **does not** currently support macOS 26.1, 26.2, or 26.3, and these images are provided for testing purposes only. 
 
-To deploy a macOS Tahoe v26.0 VM with Orka Desktop:
+To deploy a macOS Tahoe v26.0.1 VM with Orka Desktop:
 
 1. Click + Create New VM button
 1. Select 'Pull from OCI registry'
