@@ -38,7 +38,7 @@ if [[ ! -x /Applications/orka-vm-tools/orka-vm-tools ]]; then
     errors=$((errors + 1))
 else
     installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>&1 \
-        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
     if [[ "$installed_version" != "$EXPECTED_VERSION" ]]; then
         fail "orka-vm-tools version mismatch: installed ${installed_version}, expected ${EXPECTED_VERSION}"
         errors=$((errors + 1))
