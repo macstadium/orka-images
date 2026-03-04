@@ -57,7 +57,7 @@ orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ### MacOS 26.0.1 Tahoe
 
 > [!NOTE]
-> macOS 26.0.1 is currently only supported for guest VMs running on Orka version 3.5.0 and above. 
+> macOS 26.0.1 is the current OS version pulled from GHCR when using the ```tahoe:latest``` tag. It is only supported for guest VMs running on Orka version 3.5.0 and above. 
 
 macOS 26.1 includes [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that impact certain functionality when running as a virtual machine. Users should be aware of this Apple-imposed limitation when planning their deployments. We strongly recommend reviewing the Apple release notes linked above to determine if this limitation affects your specific Orka workflows before deploying macOS 26.1 VMs in production environments.
 
