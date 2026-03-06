@@ -21,33 +21,31 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        # Smoke test: running sonoma only until base tags exist for all images.
-        # Remaining entries are commented out and will be restored before merge.
         include:
-          # - name: tahoe
-          #   source_tag: base
-          #   tag: latest
-          #   disk_gb: 90
-          # - name: tahoe
-          #   source_tag: base-200-gb
-          #   tag: 200-gb
-          #   disk_gb: 200
-          # - name: sequoia
-          #   source_tag: base
-          #   tag: latest
-          #   disk_gb: 90
-          # - name: sequoia
-          #   source_tag: base-200-gb
-          #   tag: 200-gb
-          #   disk_gb: 200
+          - name: tahoe
+            source_tag: base
+            tag: latest
+            disk_gb: 90
+          - name: tahoe
+            source_tag: base-200-gb
+            tag: 200-gb
+            disk_gb: 200
+          - name: sequoia
+            source_tag: base
+            tag: latest
+            disk_gb: 90
+          - name: sequoia
+            source_tag: base-200-gb
+            tag: 200-gb
+            disk_gb: 200
           - name: sonoma
             source_tag: "14.6"
             tag: latest
             disk_gb: 90
-          # - name: monterey
-          #   source_tag: base
-          #   tag: latest
-          #   disk_gb: 90
+          - name: monterey
+            source_tag: base
+            tag: latest
+            disk_gb: 90
     defaults:
       run:
         shell: bash
