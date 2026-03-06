@@ -39,7 +39,7 @@ jobs:
             tag: 200-gb
             disk_gb: 200
           - name: sonoma
-            source_tag: base
+            source_tag: "14.6"
             tag: latest
             disk_gb: 90
           - name: monterey
