@@ -59,7 +59,7 @@ else
 fi
 
 # --- No Homebrew ---
-if [[ -d /opt/homebrew || -d /usr/local/Homebrew ]]; then
+if which brew &>/dev/null; then
     fail "Homebrew found — base images must not include Homebrew"
     errors=$((errors + 1))
 else
