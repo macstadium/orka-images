@@ -38,48 +38,92 @@ if ! command -v sudo &> /dev/null; then
     error "sudo is required but not available"
 fi
 
+# When VM_DEFAULT_PASSWORD is set (non-interactive SSH), pipe it to sudo -S.
+# In interactive sessions it falls through to normal sudo.
+sudo_run() {
+    if [[ -n "${VM_DEFAULT_PASSWORD:-}" ]]; then
+        echo "$VM_DEFAULT_PASSWORD" | sudo -S "$@"
+    else
+        sudo "$@"
+    fi
+}
+
 install_orka_vm_tools() {
     log "Installing Orka VM Tools version ${ORKA_VM_TOOLS_VERSION}..."
-    
+
     local pkg_url="https://orka-tools.s3.amazonaws.com/orka-vm-tools/official/${ORKA_VM_TOOLS_VERSION}/orka-vm-tools.pkg"
     local pkg_path="/tmp/orka-vm-tools.pkg"
-    
+
     log "Downloading Orka VM Tools from $pkg_url..."
     curl -fsSL "$pkg_url" -o "$pkg_path" || error "Failed to download Orka VM Tools package"
-    
+
     if [[ ! -f "$pkg_path" ]]; then
         error "Orka VM Tools package not found after download"
     fi
-    
+
     log "Installing Orka VM Tools package..."
-    sudo installer -pkg "$pkg_path" -target / || error "Failed to install Orka VM Tools package"
-    
+    sudo_run installer -pkg "$pkg_path" -target / || error "Failed to install Orka VM Tools package"
+
     rm -f "$pkg_path"
-    
+
     log "Orka VM Tools ${ORKA_VM_TOOLS_VERSION} installed successfully"
 }
 
 setup_sys_daemon() {
     log "Setting up system daemon..."
-    
+
     local script_url="https://raw.githubusercontent.com/macstadium/packer-plugin-macstadium-orka/main/guest-scripts/setup-sys-daemon.sh"
-    
-    curl -fsSL "$script_url" | sudo bash || error "Failed to run setup-sys-daemon.sh"
-    
+    local script_path="/tmp/setup-sys-daemon.sh"
+
+    curl -fsSL "$script_url" -o "$script_path" || error "Failed to download setup-sys-daemon.sh"
+    sudo_run bash "$script_path" || error "Failed to run setup-sys-daemon.sh"
+    rm -f "$script_path"
+
     log "System daemon setup completed"
+}
+
+configure_remote_access() {
+    log "Configuring remote access..."
+
+    local macos_major
+    macos_major=$(sw_vers -productVersion | cut -d. -f1)
+
+    # Remote Login (SSH)
+    if [[ "$macos_major" -ge 26 ]]; then
+        sudo_run launchctl enable system/com.openssh.sshd
+        sudo_run launchctl kickstart -k system/com.openssh.sshd
+    else
+        sudo_run systemsetup -setremotelogin on
+        sudo_run launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
+    fi
+
+    # Screen Sharing
+    if [[ "$macos_major" -ge 26 ]]; then
+        sudo_run launchctl enable system/com.apple.screensharing
+        sudo_run launchctl kickstart -k system/com.apple.screensharing
+    else
+        sudo_run launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+    fi
+
+    # Remote Management (ARD/VNC)
+    sudo_run /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+        -activate -configure -access -on -restart -agent -privs -all
+
+    log "Remote access configured"
 }
 
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     echo ""
-    
+
     install_orka_vm_tools
     setup_sys_daemon
-    
+    configure_remote_access
+
     echo ""
     log "=== Automated Setup Completed ==="
     echo ""
-    
+
 }
 
 trap 'error "Script interrupted by user"' INT TERM
