@@ -59,7 +59,8 @@ else
 fi
 
 # --- No Homebrew ---
-if which brew &>/dev/null; then
+# Check both PATH and known install locations (Intel: /usr/local, Apple Silicon: /opt/homebrew)
+if which brew &>/dev/null || [[ -x /usr/local/bin/brew ]] || [[ -x /opt/homebrew/bin/brew ]]; then
     fail "Homebrew found — base images must not include Homebrew"
     errors=$((errors + 1))
 else
