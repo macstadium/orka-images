@@ -1,0 +1,172 @@
+name: Update vm-tools in Base Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      vmToolsVersion:
+        description: 'Version of orka-vm-tools to install (e.g., 3.5.2)'
+        required: false
+        default: '3.5.2'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  update:
+    name: ${{ matrix.name }}:${{ matrix.tag }}
+    runs-on:
+      - self-hosted
+      - arm-mini-002
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - name: tahoe
+            source_tag: base
+            tag: latest
+            disk_gb: 90
+          - name: tahoe
+            source_tag: base-200-gb
+            tag: 200-gb
+            disk_gb: 200
+          - name: sequoia
+            source_tag: base
+            tag: latest
+            disk_gb: 90
+          - name: sequoia
+            source_tag: base-200-gb
+            tag: 200-gb
+            disk_gb: 200
+          - name: sonoma
+            source_tag: "14.6"
+            tag: latest
+            disk_gb: 90
+          - name: monterey
+            source_tag: base
+            tag: latest
+            disk_gb: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Preflight check
+        run: |
+          if ! command -v orka-engine &>/dev/null; then
+            echo "orka-engine not found on runner. Register an arm-mini-002 runner with orka-engine pre-installed." >&2
+            exit 1
+          fi
+
+      - name: Set VM name
+        id: vars
+        run: |
+          echo "VM_NAME=vm-tools-updater-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+
+      - name: Pull image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          orka-engine image pull \
+            --username ${{ github.actor }} \
+            --password "${GITHUB_TOKEN}" \
+            ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
+
+      - name: Run VM
+        run: |
+          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+            --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
+            -d
+
+      - name: Wait for VM IP
+        timeout-minutes: 5
+        id: vm-ip
+        run: |
+          output=""
+          vm_name="${{ steps.vars.outputs.VM_NAME }}"
+          jq_query=".[] | select(.name == \"$vm_name\") | .ip"
+          while [ -z "$output" ]; do
+            output=$(orka-engine vm list -o json | jq -r "$jq_query")
+            sleep 1
+          done
+          echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
+
+      - name: Copy scripts into VM
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            setup/setup.sh setup/verify.sh \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
+
+      - name: Run setup
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/setup.sh"
+
+      - name: Set admin user password
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S dscl . -passwd /Users/admin admin"
+
+      - name: Reboot VM
+        continue-on-error: true
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S reboot"
+
+      - name: Wait for VM to come back online
+        timeout-minutes: 5
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          vm_ip="${{ steps.vm-ip.outputs.VM_IP }}"
+          while ! sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${vm_ip}" "echo 'VM is back online'" &>/dev/null; do
+              sleep 1
+          done
+
+      - name: Verify image
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
+            "VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/verify.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
+
+      - name: Save and push updated image
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          orka-engine vm save ${{ steps.vars.outputs.VM_NAME }} \
+            ${{ steps.vars.outputs.TEMP_NAME }}
+
+          orka-engine image push \
+            --username ${{ github.actor }} \
+            --password "${GITHUB_TOKEN}" \
+            ${{ steps.vars.outputs.TEMP_NAME }} \
+            ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          orka-engine vm delete ${{ steps.vars.outputs.VM_NAME }} || true
