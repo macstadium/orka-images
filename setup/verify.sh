@@ -38,7 +38,7 @@ if [[ ! -x /Applications/orka-vm-tools/orka-vm-tools ]]; then
     errors=$((errors + 1))
 else
     installed_version=$(/Applications/orka-vm-tools/orka-vm-tools version 2>&1 \
-        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)
     if [[ "$installed_version" != "$EXPECTED_VERSION" ]]; then
         fail "orka-vm-tools version mismatch: installed ${installed_version}, expected ${EXPECTED_VERSION}"
         errors=$((errors + 1))
@@ -59,7 +59,8 @@ else
 fi
 
 # --- No Homebrew ---
-if [[ -d /opt/homebrew || -d /usr/local/Homebrew ]]; then
+# Check both PATH and known install locations (Intel: /usr/local, Apple Silicon: /opt/homebrew)
+if which brew &>/dev/null || [[ -x /usr/local/bin/brew ]] || [[ -x /opt/homebrew/bin/brew ]]; then
     fail "Homebrew found — base images must not include Homebrew"
     errors=$((errors + 1))
 else
