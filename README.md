@@ -1,25 +1,13 @@
 # Orka Images
 
-## Repository with Orka 3.2 OCI-compatible images
+OCI-compatible macOS VM images for use with [Orka](https://docs.macstadium.com) and [Orka Desktop](https://github.com/macstadium/orka-desktop).
 
-These images can be used with Orka Desktop (via the GUI), or with Orka via the [orka3 CLI](https://orkadocs.macstadium.com/docs/cli-reference)
+### Using with the Orka CLI
 
-### Using with Orka Desktop
-
-To get started with [Orka Desktop](https://github.com/macstadium/orka-desktop), click the 'Create New VM', choose 'Pull from Image', and use the following OCI image name:
+To [get started with Orka](https://docs.macstadium.com), run:
 
 ```sh
-ghcr.io/macstadium/orka-images/sonoma:latest
-```
-
-Currently, Orka Desktop doesn't support the new OCI image format, and Sequoia VM images may experience issues when deployed using Orka Desktop. Support for the new format will be available with the next release.
-
-### Using with the Orka 3 CLI
-
-To [get started with Orka](https://orkadocs.macstadium.com/docs/orka-cluster-32-introduction), run:
-
-```sh
-orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:latest
 ```
 
 Alternatively, create a VM directly with `kubectl apply` or `kubectl create` using the following definition:
@@ -31,56 +19,97 @@ metadata:
   name: my-orka-vm
   namespace: orka-default
 spec:
-  image: ghcr.io/macstadium/orka-images/sonoma:latest
+  image: ghcr.io/macstadium/orka-images/sequoia:latest
+```
+
+### Using with Orka Desktop
+
+In Orka Desktop, click **Create New VM**, select **Pull from Image**, and enter an OCI image name:
+
+```
+ghcr.io/macstadium/orka-images/sequoia:latest
 ```
 
 ### VM setup from IPSW script
 
-To get started with Orka using an IPSW and Orka Desktop, use the [setup.sh script](./setup/README.md).
+To set up a VM from an IPSW file using Orka Desktop, see the [setup.sh script](./setup/README.md).
 
-### SIP Disabled Sonoma
+---
 
-To deploy a Sonoma VM with SIP (system integrity protection) disabled, deploy with the following image label:
+## macOS Tahoe (26.x)
+
+Orka supports macOS Tahoe as a guest OS. The current latest image is `tahoe:latest` (26.4.1). Version-specific tags are available for all minor releases in the 26.x line.
+
+**Version support:** Customers can upgrade to the latest minor release within the 26.x line without issues. Any 26.x guest image is expected to run on any supported Orka cluster, regardless of the exact minor version of the host OS.
+
+**Orka version requirement:** Orka 3.5.0 or later is required to run Tahoe guest VMs.
+
+**Host OS requirement:** A macOS Sequoia (15.5 or later) host is required.
+
+> [!NOTE]
+> macOS 26.1 introduced [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that affect certain VM functionality. Review the Apple release notes to determine if your workflows are impacted before deploying 26.1+ VMs in production.
+
+#### Deploy with the CLI
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:latest
+```
+
+To deploy a specific version:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:26.4.1
+```
+
+Available version tags: `latest`, `26.4.1`, `26.3`, `26.2`, `26.1`, `26.0.1`
+
+#### Deploy with Orka Desktop
+
+1. Click **+ Create New VM**
+2. Select **Pull from OCI registry**
+3. Name the VM and set parameters (CPUs, memory, disk size)
+4. In the **OCI Image Name** field, enter: `ghcr.io/macstadium/orka-images/tahoe:latest`
+
+---
+
+## SIP-disabled images
+
+SIP-disabled images are required for workflows that automate TCC permissions (for example, Citrix VDA provisioning via Ansible). Deploy with the Orka CLI using the image tags below.
+
+#### macOS Sequoia
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:latest-no-sip
+```
+
+#### macOS Tahoe
+
+SIP-disabled Tahoe images are available for 26.1 and 26.2:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:26.2-no-sip
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:26.1-no-sip
+```
+
+#### macOS Sonoma
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/sonoma:latest-no-sip
 ```
 
-### SIP Diabled Ventura
-
-To deploy a Ventura VM with SIP disabled, run:
+#### macOS Ventura
 
 ```sh
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/ventura:no-sip
 ```
 
-### MacOS 26.0.1 Tahoe
+---
 
-> [!NOTE]
-> macOS 26.0.1 is the current OS version pulled from GHCR when using the ```tahoe:latest``` tag. It is only supported for guest VMs running on Orka version 3.5.0 and above. 
+## 200 GB images
 
-macOS 26.1 includes [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that impact certain functionality when running as a virtual machine. Users should be aware of this Apple-imposed limitation when planning their deployments. We strongly recommend reviewing the Apple release notes linked above to determine if this limitation affects your specific Orka workflows before deploying macOS 26.1 VMs in production environments.
+Larger disk variants are available for Sequoia and Tahoe:
 
-Orka 3.5.0+ **does not** currently support macOS 26.1, 26.2, or 26.3, and these images are provided for testing purposes only. 
-
-To deploy a macOS Tahoe v26.0.1 VM with Orka Desktop:
-
-1. Click + Create New VM button
-1. Select 'Pull from OCI registry'
-1. Name VM and set parameters (CPUs, Memory, HD size)
-1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:latest`
-
-```sh  
-  ghcr.io/macstadium/orka-images/tahoe:latest
-```
-
-To deploy a SIP-disabled Tahoe VM with Orka Desktop:
-
-1. Click + Create New VM button
-1. Select 'Pull from OCI registry'
-1. Name VM and set parameters (CPUs, Memory, HD size)
-1. In the 'OCI Image Name' field enter: `ghcr.io/macstadium/orka-images/tahoe:no-sip`
-
-```sh  
-  ghcr.io/macstadium/orka-images/tahoe:no-sip
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:200-gb
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:200-gb
 ```
