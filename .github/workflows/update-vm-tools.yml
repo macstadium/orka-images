@@ -67,12 +67,8 @@ jobs:
           echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Pull image
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           orka-engine image pull \
-            --username ${{ github.actor }} \
-            --password "${GITHUB_TOKEN}" \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
       - name: Run VM
@@ -86,10 +82,8 @@ jobs:
         id: vm-ip
         run: |
           output=""
-          vm_name="${{ steps.vars.outputs.VM_NAME }}"
-          jq_query=".[] | select(.name == \"$vm_name\") | .ip"
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list -o json | jq -r "$jq_query")
+            output=$(orka-engine vm list ${{ steps.vars.outputs.VM_NAME }} -o json | jq -r '.[0].ip // empty')
             sleep 1
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
