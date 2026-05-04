@@ -38,7 +38,7 @@ To set up a VM from an IPSW file using Orka Desktop, see the [setup.sh script](.
 
 ## macOS Tahoe (26.x)
 
-Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for all minor releases in the 26.x line — see [all available tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
+Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for all minor releases in the 26.x line — browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
 
 **Version support:** Customers can upgrade to the latest minor release within the 26.x line without issues. Any 26.x guest image is expected to run on any supported Orka cluster, regardless of the exact minor version of the host OS.
 
@@ -55,7 +55,7 @@ Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for
 orka3 vm deploy --image ghcr.io/macstadium/orka-images/tahoe:latest
 ```
 
-To deploy a specific version, use a version-specific tag. See all available tags on [GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
+To deploy a specific version, use a version-specific tag. Browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
 
 #### Deploy with Orka Desktop
 
@@ -78,7 +78,7 @@ orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:latest-no-sip
 
 #### macOS Tahoe
 
-SIP-disabled Tahoe images are available for select versions. See available tags on [GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
+SIP-disabled Tahoe images are available for select versions. Browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
 
 #### macOS Sonoma
 
