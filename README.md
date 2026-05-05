@@ -66,6 +66,20 @@ To deploy a specific version, use a version-specific tag. Browse releases on [Or
 
 ---
 
+## macOS Sequoia (15.x)
+
+Orka supports macOS Sequoia as a guest OS. Version-specific tags are available for all minor releases in the 15.x line — browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Fsequoia).
+
+#### Deploy with the CLI
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/sequoia:latest
+```
+
+To deploy a specific version, use a version-specific tag. Browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Fsequoia).
+
+---
+
 ## SIP-disabled images
 
 SIP-disabled images are required for workflows that automate TCC permissions (for example, Citrix VDA provisioning via Ansible). Deploy with the Orka CLI using the image tags below.
