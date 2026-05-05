@@ -110,10 +110,12 @@ jobs:
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
+          # dscl . -passwd requires the old password even as root on macOS 26 (Tahoe),
+          # so use sysadminctl which accepts explicit credentials.
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
-            "echo ${VM_DEFAULT_PASSWORD} | sudo -S dscl . -passwd /Users/admin admin"
+            "echo ${VM_DEFAULT_PASSWORD} | sudo -S sysadminctl -resetPasswordFor admin -newPassword admin -adminUser admin -adminPassword ${VM_DEFAULT_PASSWORD}"
 
       - name: Reboot VM
         continue-on-error: true
