@@ -1,0 +1,96 @@
+name: Check for new IPSW releases
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    name: Check ipsw.me for new VirtualMac firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for new versions
+        id: check
+        run: |
+          set -euo pipefail
+
+          current=$(cat ipsw-versions.json)
+
+          updated=false
+          new_versions=""
+
+          for os in tahoe sequoia sonoma; do
+            case $os in
+              tahoe)   major=26 ;;
+              sequoia) major=15 ;;
+              sonoma)  major=14 ;;
+            esac
+
+            latest=$(curl -s "https://api.ipsw.me/v4/device/VirtualMac2,1" \
+              | jq -r --arg major "$major." \
+                '[.firmwares[] | select(.version | startswith($major))] | first')
+
+            latest_version=$(echo "$latest" | jq -r '.version')
+            latest_buildid=$(echo "$latest" | jq -r '.buildid')
+            latest_url=$(echo "$latest" | jq -r '.url')
+
+            current_version=$(echo "$current" | jq -r --arg os "$os" '.[$os].version')
+
+            if [ "$latest_version" != "$current_version" ]; then
+              echo "New $os version: $current_version -> $latest_version ($latest_buildid)"
+              updated=true
+              new_versions="$new_versions $os:$latest_version"
+
+              current=$(echo "$current" | jq \
+                --arg os "$os" \
+                --arg version "$latest_version" \
+                --arg buildid "$latest_buildid" \
+                --arg url "$latest_url" \
+                '.[$os] = {version: $version, buildid: $buildid, url: $url}')
+            else
+              echo "$os is current: $current_version"
+            fi
+          done
+
+          echo "updated=$updated" >> "$GITHUB_OUTPUT"
+          echo "new_versions=$new_versions" >> "$GITHUB_OUTPUT"
+
+          if [ "$updated" = "true" ]; then
+            echo "$current" | jq . > ipsw-versions.json
+          fi
+
+      - name: Open PR with updated versions
+        if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="update/ipsw-versions-$(date +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add ipsw-versions.json
+          git commit -m "chore: update ipsw-versions.json with new releases"
+          git push origin "$branch"
+
+          gh pr create \
+            --title "chore: new IPSW releases detected — ${{ steps.check.outputs.new_versions }}" \
+            --body "$(cat <<'EOF'
+          New stable IPSW releases are available for VirtualMac2,1.
+
+          Updated versions: ${{ steps.check.outputs.new_versions }}
+
+          Review \`ipsw-versions.json\` and merge to trigger the build pipeline.
+
+          Source: https://ipsw.me (VirtualMac2,1 firmwares)
+          EOF
+          )" \
+            --head "$branch" \
+            --base main
