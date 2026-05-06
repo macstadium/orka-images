@@ -161,4 +161,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
+          orka-engine vm stop ${{ steps.vars.outputs.VM_NAME }} || true
           orka-engine vm delete ${{ steps.vars.outputs.VM_NAME }} || true
