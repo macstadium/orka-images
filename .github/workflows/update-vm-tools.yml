@@ -7,6 +7,10 @@ on:
         description: 'Version of orka-vm-tools to install (e.g., 3.6.0)'
         required: false
         default: '3.6.0'
+      images:
+        description: 'Comma-separated list of images to update (e.g., sequoia,sonoma). Leave blank to update all.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -15,6 +19,7 @@ permissions:
 jobs:
   update:
     name: ${{ matrix.name }}:${{ matrix.tag }}
+    if: inputs.images == '' || contains(inputs.images, matrix.name)
     runs-on:
       - self-hosted
       - arm-mini-002
