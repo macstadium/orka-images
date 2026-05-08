@@ -99,7 +99,7 @@ jobs:
             --head "$branch" \
             --base main
 
-      - name: Trigger vm-tools update for affected images
+      - name: Trigger vm-tools update for new IPSW versions
         if: steps.check.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
