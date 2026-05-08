@@ -11,6 +11,11 @@ on:
         description: 'Comma-separated list of images to update (e.g., sequoia,sonoma). Leave blank to update all.'
         required: false
         default: ''
+      noSip:
+        description: 'Also build a no-SIP variant of each image'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -73,6 +78,8 @@ jobs:
         run: |
           echo "VM_NAME=vm-tools-updater-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
           echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          echo "NOSIP_VM_NAME=vm-tools-nosip-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          echo "NOSIP_TEMP_NAME=vm-tools-nosip-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Pull image
         if: env.SKIP_IMAGE != 'true'
@@ -180,7 +187,83 @@ jobs:
             ${{ steps.vars.outputs.TEMP_NAME }} \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
 
+      - name: Run VM in recovery for no-SIP variant
+        if: inputs.noSip == true
+        run: |
+          orka-engine vm run ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
+            --image ${{ steps.vars.outputs.TEMP_NAME }} \
+            --recovery \
+            --vnc-port 5901 \
+            --disable-graphical-console \
+            -d
+
+      - name: Wait for recovery VM IP
+        if: inputs.noSip == true
+        timeout-minutes: 5
+        id: nosip-ip
+        run: |
+          output=""
+          while [ -z "$output" ]; do
+            output=$(orka-engine vm list ${{ steps.vars.outputs.NOSIP_VM_NAME }} -o json | jq -r '.[0].ip // empty')
+            sleep 1
+          done
+          echo "NOSIP_VM_IP=$output" >> "$GITHUB_OUTPUT"
+
+      - name: Disable SIP via VNC
+        if: inputs.noSip == true
+        timeout-minutes: 10
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          python3 setup/vnc-disable-sip.py \
+            --host 127.0.0.1 \
+            --port 5901 \
+            --password "${VM_DEFAULT_PASSWORD}"
+
+      - name: Wait for no-SIP VM to come back online
+        if: inputs.noSip == true
+        timeout-minutes: 10
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          nosip_ip="${{ steps.nosip-ip.outputs.NOSIP_VM_IP }}"
+          while ! sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${nosip_ip}" "echo 'VM is back online'" &>/dev/null; do
+              sleep 5
+          done
+
+      - name: Verify SIP is disabled
+        if: inputs.noSip == true
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "admin@${{ steps.nosip-ip.outputs.NOSIP_VM_IP }}" \
+            "csrutil status | grep -q 'disabled'"
+
+      - name: Save and push no-SIP image
+        if: inputs.noSip == true
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          orka-engine vm save ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
+            ${{ steps.vars.outputs.NOSIP_TEMP_NAME }}
+
+          orka-engine image push \
+            --username ${{ github.actor }} \
+            --password "${GITHUB_TOKEN}" \
+            ${{ steps.vars.outputs.NOSIP_TEMP_NAME }} \
+            ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}-no-sip
+
       - name: Cleanup
         if: always() && env.SKIP_IMAGE != 'true'
         run: |
           orka-engine vm delete -f ${{ steps.vars.outputs.VM_NAME }}
+
+      - name: Cleanup no-SIP VM
+        if: always() && inputs.noSip == true
+        run: |
+          orka-engine vm delete -f ${{ steps.vars.outputs.NOSIP_VM_NAME }}
