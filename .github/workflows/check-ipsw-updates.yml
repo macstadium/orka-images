@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   check:
-    name: Check ipsw.me for new VirtualMac firmware
+    name: Check SOFA and Apple catalog for new VirtualMac firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,20 +29,38 @@ jobs:
           new_versions=""
           new_images=""
 
+          # Fetch version data from SOFA (macadmins.io) and IPSW URLs from Apple's official catalog
+          sofa=$(curl -s "https://sofafeed.macadmins.io/v1/macos_data_feed.json")
+          curl -s "https://mesu.apple.com/assets/macos/com_apple_macOSIPSW/com_apple_macOSIPSW.xml" \
+            -o /tmp/apple_catalog.xml
+
           for os in tahoe sequoia sonoma; do
             case $os in
-              tahoe)   major=26 ;;
-              sequoia) major=15 ;;
-              sonoma)  major=14 ;;
+              tahoe)   sofa_prefix="Tahoe"   ;;
+              sequoia) sofa_prefix="Sequoia" ;;
+              sonoma)  sofa_prefix="Sonoma"  ;;
             esac
 
-            latest=$(curl -s "https://api.ipsw.me/v4/device/VirtualMac2,1" \
-              | jq -r --arg major "$major." \
-                '[.firmwares[] | select(.version | startswith($major))] | first')
+            latest_version=$(echo "$sofa" | jq -r \
+              --arg prefix "$sofa_prefix" \
+              '.OSVersions[] | select(.OSVersion | startswith($prefix)) | .Latest.ProductVersion')
 
-            latest_version=$(echo "$latest" | jq -r '.version')
-            latest_buildid=$(echo "$latest" | jq -r '.buildid')
-            latest_url=$(echo "$latest" | jq -r '.url')
+            latest_buildid=$(echo "$sofa" | jq -r \
+              --arg prefix "$sofa_prefix" \
+              '.OSVersions[] | select(.OSVersion | startswith($prefix)) | .Latest.Build')
+
+            # Look up the updates.cdn-apple.com URL from Apple's official IPSW catalog
+            latest_url=$(BUILDID="$latest_buildid" python3 -c "
+import plistlib, sys, os
+buildid = os.environ['BUILDID']
+data = plistlib.load(sys.stdin.buffer)
+for bucket in data.get('MobileDeviceSoftwareVersionsByVersion', {}).values():
+    vm = bucket.get('MobileDeviceSoftwareVersions', {}).get('VirtualMac2,1', {})
+    if buildid in vm:
+        print(vm[buildid].get('Restore', {}).get('FirmwareURL', ''))
+        sys.exit(0)
+print('')
+" < /tmp/apple_catalog.xml 2>/dev/null || echo "")
 
             current_version=$(echo "$current" | jq -r --arg os "$os" '.[$os].version')
 
@@ -93,7 +111,7 @@ jobs:
 
           Review \`ipsw-versions.json\` and merge to trigger the build pipeline.
 
-          Source: https://ipsw.me (VirtualMac2,1 firmwares)
+          Sources: sofafeed.macadmins.io (version detection), mesu.apple.com (IPSW URLs via updates.cdn-apple.com)
           EOF
           )" \
             --head "$branch" \
