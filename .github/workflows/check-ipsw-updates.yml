@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   check:
@@ -26,6 +27,7 @@ jobs:
 
           updated=false
           new_versions=""
+          new_images=""
 
           for os in tahoe sequoia sonoma; do
             case $os in
@@ -48,6 +50,7 @@ jobs:
               echo "New $os version: $current_version -> $latest_version ($latest_buildid)"
               updated=true
               new_versions="$new_versions $os:$latest_version"
+              new_images="${new_images:+$new_images,}$os"
 
               current=$(echo "$current" | jq \
                 --arg os "$os" \
@@ -62,6 +65,7 @@ jobs:
 
           echo "updated=$updated" >> "$GITHUB_OUTPUT"
           echo "new_versions=$new_versions" >> "$GITHUB_OUTPUT"
+          echo "new_images=$new_images" >> "$GITHUB_OUTPUT"
 
           if [ "$updated" = "true" ]; then
             echo "$current" | jq . > ipsw-versions.json
@@ -94,3 +98,13 @@ jobs:
           )" \
             --head "$branch" \
             --base main
+
+      - name: Trigger vm-tools update for affected images
+        if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/update-vm-tools.yml/dispatches \
+            --method POST \
+            -f ref=main \
+            -f 'inputs[images]=${{ steps.check.outputs.new_images }}'
