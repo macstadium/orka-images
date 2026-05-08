@@ -81,7 +81,7 @@ jobs:
           git push origin "$branch"
 
           gh pr create \
-            --title "chore: new IPSW releases detected — ${{ steps.check.outputs.new_versions }}" \
+            --title "chore: new IPSW releases detected: ${{ steps.check.outputs.new_versions }}" \
             --body "$(cat <<'EOF'
           New stable IPSW releases are available for VirtualMac2,1.
 
