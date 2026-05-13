@@ -19,7 +19,6 @@ permissions:
 jobs:
   update:
     name: ${{ matrix.name }}:${{ matrix.tag }}
-    if: inputs.images == '' || contains(inputs.images, matrix.name)
     runs-on:
       - self-hosted
       - arm-mini-002
@@ -54,7 +53,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Apply image filter
+        run: |
+          if [ -n "${{ inputs.images }}" ] && ! echo ",${{ inputs.images }}," | grep -q ",${{ matrix.name }},"; then
+            echo "SKIP_IMAGE=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Preflight check
+        if: env.SKIP_IMAGE != 'true'
         run: |
           if ! command -v orka-engine &>/dev/null; then
             echo "orka-engine not found on runner. Register an arm-mini-002 runner with orka-engine pre-installed." >&2
@@ -62,23 +68,27 @@ jobs:
           fi
 
       - name: Set VM name
+        if: env.SKIP_IMAGE != 'true'
         id: vars
         run: |
           echo "VM_NAME=vm-tools-updater-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
           echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Pull image
+        if: env.SKIP_IMAGE != 'true'
         run: |
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
       - name: Run VM
+        if: env.SKIP_IMAGE != 'true'
         run: |
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             -d
 
       - name: Wait for VM IP
+        if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 5
         id: vm-ip
         run: |
@@ -90,6 +100,7 @@ jobs:
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
 
       - name: Copy scripts into VM
+        if: env.SKIP_IMAGE != 'true'
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
@@ -99,6 +110,7 @@ jobs:
             "admin@${{ steps.vm-ip.outputs.VM_IP }}:~/"
 
       - name: Run setup
+        if: env.SKIP_IMAGE != 'true'
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
@@ -108,6 +120,7 @@ jobs:
             "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/setup.sh"
 
       - name: Set admin user password
+        if: env.SKIP_IMAGE != 'true'
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
@@ -119,6 +132,7 @@ jobs:
             "echo ${VM_DEFAULT_PASSWORD} | sudo -S sysadminctl -resetPasswordFor admin -newPassword admin -adminUser admin -adminPassword ${VM_DEFAULT_PASSWORD}"
 
       - name: Reboot VM
+        if: env.SKIP_IMAGE != 'true'
         continue-on-error: true
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
@@ -129,6 +143,7 @@ jobs:
             "echo ${VM_DEFAULT_PASSWORD} | sudo -S reboot"
 
       - name: Wait for VM to come back online
+        if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 5
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
@@ -141,6 +156,7 @@ jobs:
           done
 
       - name: Verify image
+        if: env.SKIP_IMAGE != 'true'
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
@@ -150,6 +166,7 @@ jobs:
             "VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/verify.sh ${{ matrix.disk_gb }} ${{ inputs.vmToolsVersion }}"
 
       - name: Save and push updated image
+        if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -164,6 +181,6 @@ jobs:
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
 
       - name: Cleanup
-        if: always()
+        if: always() && env.SKIP_IMAGE != 'true'
         run: |
           orka-engine vm delete -f ${{ steps.vars.outputs.VM_NAME }}
