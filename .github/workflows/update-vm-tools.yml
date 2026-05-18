@@ -188,7 +188,7 @@ jobs:
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.tag }}
 
       - name: Run VM in recovery for no-SIP variant
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         run: |
           orka-engine vm run ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
             --image ${{ steps.vars.outputs.TEMP_NAME }} \
@@ -198,7 +198,7 @@ jobs:
             -d
 
       - name: Wait for recovery VM IP
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         timeout-minutes: 5
         id: nosip-ip
         run: |
@@ -210,7 +210,7 @@ jobs:
           echo "NOSIP_VM_IP=$output" >> "$GITHUB_OUTPUT"
 
       - name: Disable SIP via VNC
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         timeout-minutes: 10
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
@@ -218,10 +218,11 @@ jobs:
           python3 setup/vnc-disable-sip.py \
             --host 127.0.0.1 \
             --port 5901 \
+            --username admin \
             --password "${VM_DEFAULT_PASSWORD}"
 
       - name: Wait for no-SIP VM to come back online
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         timeout-minutes: 10
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
@@ -234,7 +235,7 @@ jobs:
           done
 
       - name: Verify SIP is disabled
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
@@ -244,7 +245,7 @@ jobs:
             "csrutil status | grep -q 'disabled'"
 
       - name: Save and push no-SIP image
-        if: inputs.noSip == true
+        if: ${{ inputs.noSip == true || inputs.noSip == 'true' }}
         timeout-minutes: 10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -264,6 +265,6 @@ jobs:
           orka-engine vm delete -f ${{ steps.vars.outputs.VM_NAME }}
 
       - name: Cleanup no-SIP VM
-        if: always() && inputs.noSip == true
+        if: always() && (inputs.noSip == true || inputs.noSip == 'true')
         run: |
           orka-engine vm delete -f ${{ steps.vars.outputs.NOSIP_VM_NAME }}

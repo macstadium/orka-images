@@ -6,7 +6,7 @@ Boot the VM with --recovery and --vnc-port, then run this script to open
 Terminal from the Recovery Utilities menu, run csrutil disable, and reboot.
 
 Usage:
-  python3 vnc-disable-sip.py --host 127.0.0.1 --port 5901 --password <admin_password>
+  python3 vnc-disable-sip.py --host 127.0.0.1 --port 5901 --username admin --password <admin_password>
 
 Requirements:
   pip install vncdotool
@@ -46,7 +46,7 @@ class VNCSession:
         self.client.keyUp('ctrl_l')
 
 
-def disable_sip(vnc, password):
+def disable_sip(vnc, username, password):
     print("Waiting for Recovery UI to load...")
     vnc.wait(90)
 
@@ -77,7 +77,7 @@ def disable_sip(vnc, password):
     vnc.wait(3)
 
     # csrutil disable prompts for admin username and password in Recovery
-    vnc.type('admin')
+    vnc.type(username)
     vnc.key('Return')
     vnc.wait(2)
 
@@ -94,6 +94,7 @@ def main():
     parser = argparse.ArgumentParser(description='Disable SIP in macOS Recovery via VNC')
     parser.add_argument('--host', required=True, help='VNC server host')
     parser.add_argument('--port', type=int, default=5901, help='VNC port (default: 5901)')
+    parser.add_argument('--username', required=True, help='Admin username for csrutil authentication')
     parser.add_argument('--password', required=True, help='Admin password for csrutil authentication')
     args = parser.parse_args()
 
@@ -101,7 +102,7 @@ def main():
     vnc = VNCSession(args.host, args.port)
 
     try:
-        disable_sip(vnc, args.password)
+        disable_sip(vnc, args.username, args.password)
         print('SIP disable sequence complete. Waiting for VM to reboot...')
     finally:
         vnc.close()
