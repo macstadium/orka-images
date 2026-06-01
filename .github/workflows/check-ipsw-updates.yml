@@ -49,17 +49,31 @@ jobs:
               --arg prefix "$sofa_prefix" \
               '.OSVersions[] | select(.OSVersion | startswith($prefix)) | .Latest.Build')
 
-            # Look up the updates.cdn-apple.com URL from Apple's official IPSW catalog
+            # Look up the updates.cdn-apple.com URL from Apple's official IPSW catalog.
+            # Try exact buildid match first; fall back to prefix match (first 2 chars) to
+            # handle cases where SOFA and Apple's catalog report different buildids for the
+            # same release (e.g. SOFA: 25F71, catalog: 25F80).
             latest_url=$(BUILDID="$latest_buildid" python3 -c "
 import plistlib, sys, os
 buildid = os.environ['BUILDID']
+prefix = buildid[:2]
 data = plistlib.load(sys.stdin.buffer)
+fallback_url = ''
 for bucket in data.get('MobileDeviceSoftwareVersionsByVersion', {}).values():
     vm = bucket.get('MobileDeviceSoftwareVersions', {}).get('VirtualMac2,1', {})
     if buildid in vm:
-        print(vm[buildid].get('Restore', {}).get('FirmwareURL', ''))
-        sys.exit(0)
-print('')
+        url = vm[buildid].get('Restore', {}).get('FirmwareURL', '')
+        if url:
+            print(url)
+            sys.exit(0)
+    if not fallback_url:
+        for bid, entry in vm.items():
+            if bid[:2] == prefix:
+                url = entry.get('Restore', {}).get('FirmwareURL', '')
+                if url:
+                    fallback_url = url
+                    break
+print(fallback_url)
 " < /tmp/apple_catalog.xml 2>/dev/null || echo "")
 
             current_version=$(echo "$current" | jq -r --arg os "$os" '.[$os].version')
