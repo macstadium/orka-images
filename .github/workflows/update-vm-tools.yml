@@ -104,12 +104,12 @@ jobs:
 
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
-        timeout-minutes: 5
+        timeout-minutes: 10
         id: vm-ip
         run: |
           output=""
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list ${{ steps.vars.outputs.VM_NAME }} -o json | jq -r '.[0].ip // empty') || true
+            output=$(orka-engine vm list -o json | jq -r --arg name "${{ steps.vars.outputs.VM_NAME }}" '.[] | select(.name == $name) | .ip // empty') || true
             sleep 1
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
@@ -207,12 +207,12 @@ jobs:
 
       - name: Wait for recovery VM IP
         if: ${{ (inputs.noSip == true || inputs.noSip == 'true') && env.SKIP_IMAGE != 'true' }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         id: nosip-ip
         run: |
           output=""
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list ${{ steps.vars.outputs.NOSIP_VM_NAME }} -o json | jq -r '.[0].ip // empty') || true
+            output=$(orka-engine vm list -o json | jq -r --arg name "${{ steps.vars.outputs.NOSIP_VM_NAME }}" '.[] | select(.name == $name) | .ip // empty') || true
             sleep 1
           done
           echo "NOSIP_VM_IP=$output" >> "$GITHUB_OUTPUT"
