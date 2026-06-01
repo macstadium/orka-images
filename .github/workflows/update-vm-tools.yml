@@ -101,7 +101,7 @@ jobs:
         run: |
           output=""
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list ${{ steps.vars.outputs.VM_NAME }} -o json 2>/dev/null | jq -r '.[0].ip // empty') || true
+            output=$(orka-engine vm list ${{ steps.vars.outputs.VM_NAME }} -o json | jq -r '.[0].ip // empty') || true
             sleep 1
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
@@ -204,7 +204,7 @@ jobs:
         run: |
           output=""
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list ${{ steps.vars.outputs.NOSIP_VM_NAME }} -o json 2>/dev/null | jq -r '.[0].ip // empty') || true
+            output=$(orka-engine vm list ${{ steps.vars.outputs.NOSIP_VM_NAME }} -o json | jq -r '.[0].ip // empty') || true
             sleep 1
           done
           echo "NOSIP_VM_IP=$output" >> "$GITHUB_OUTPUT"
