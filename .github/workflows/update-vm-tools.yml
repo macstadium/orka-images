@@ -94,6 +94,14 @@ jobs:
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             -d
 
+      - name: Debug VM state
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          echo "=== All VMs (unfiltered) ==="
+          orka-engine vm list -o json || echo "vm list failed: $?"
+          echo "=== VM process check ==="
+          pgrep -la -f "${{ steps.vars.outputs.VM_NAME }}" || echo "no matching process"
+
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 5
