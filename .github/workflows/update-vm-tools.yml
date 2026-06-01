@@ -87,10 +87,6 @@ jobs:
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
-      - name: Debug orka-engine vm run flags
-        if: env.SKIP_IMAGE != 'true'
-        run: orka-engine vm run --help 2>&1 || true
-
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
@@ -109,6 +105,19 @@ jobs:
             sleep 1
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for SSH
+        if: env.SKIP_IMAGE != 'true'
+        timeout-minutes: 5
+        env:
+          VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
+        run: |
+          until sshpass -p "${VM_DEFAULT_PASSWORD}" \
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=5 \
+            "admin@${{ steps.vm-ip.outputs.VM_IP }}" "echo ok" &>/dev/null; do
+            sleep 5
+          done
 
       - name: Copy scripts into VM
         if: env.SKIP_IMAGE != 'true'
