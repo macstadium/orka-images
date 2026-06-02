@@ -80,6 +80,8 @@ jobs:
           echo "TEMP_NAME=vm-tools-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
           echo "NOSIP_VM_NAME=vm-tools-nosip-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
           echo "NOSIP_TEMP_NAME=vm-tools-nosip-updated-${{ github.run_id }}-${{ matrix.name }}-${{ matrix.tag }}" >> "$GITHUB_OUTPUT"
+          echo "VM_MAC=$(printf 'b2:ef:%02x:%02x:%02x:%02x' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))" >> "$GITHUB_OUTPUT"
+          echo "NOSIP_MAC=$(printf 'b2:fa:%02x:%02x:%02x:%02x' $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)) $((RANDOM % 256)))" >> "$GITHUB_OUTPUT"
 
       - name: Pull image
         if: env.SKIP_IMAGE != 'true'
@@ -87,19 +89,12 @@ jobs:
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
-      - name: Inspect orka-engine flags
-        if: env.SKIP_IMAGE != 'true'
-        run: |
-          echo "=== vm run ==="
-          orka-engine vm run --help 2>&1 || true
-          echo "=== vm list ==="
-          orka-engine vm list --help 2>&1 || true
-
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
+            --mac-address ${{ steps.vars.outputs.VM_MAC }} \
             -d
 
       - name: Wait for VM IP
@@ -107,10 +102,29 @@ jobs:
         timeout-minutes: 10
         id: vm-ip
         run: |
+          vm_name="${{ steps.vars.outputs.VM_NAME }}"
+          vm_mac="${{ steps.vars.outputs.VM_MAC }}"
           output=""
+          itr=0
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list -o json | jq -r --arg name "${{ steps.vars.outputs.VM_NAME }}" '.[] | select(.name == $name) | .ip // empty') || true
-            sleep 1
+            output=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name) | .ip // empty') || true
+            if [ -z "$output" ]; then
+              output=$(arp -a 2>/dev/null | grep -i "$vm_mac" | grep -oE '\(([0-9]+\.){3}[0-9]+\)' | tr -d '()' || true)
+              [ -n "$output" ] && echo "IP resolved via ARP: $output"
+            fi
+            if [ -z "$output" ]; then
+              itr=$((itr + 1))
+              if [ $((itr % 12)) -eq 0 ]; then
+                echo "=== No IP after $((itr * 5))s ==="
+                echo "-- VM state:"
+                orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name)' || true
+                echo "-- ARP (192.168.x.x):"
+                arp -a 2>/dev/null | grep "192\.168\." || echo "(none)"
+                echo "-- Bridge interfaces:"
+                ifconfig 2>/dev/null | grep -E "^bridge" || echo "(none)"
+              fi
+              sleep 5
+            fi
           done
           echo "VM_IP=$output" >> "$GITHUB_OUTPUT"
 
@@ -213,6 +227,7 @@ jobs:
         run: |
           orka-engine vm run ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
             --image ${{ steps.vars.outputs.TEMP_NAME }} \
+            --mac-address ${{ steps.vars.outputs.NOSIP_MAC }} \
             --recovery \
             --vnc-port 5901 \
             --disable-graphical-console \
@@ -223,10 +238,29 @@ jobs:
         timeout-minutes: 10
         id: nosip-ip
         run: |
+          vm_name="${{ steps.vars.outputs.NOSIP_VM_NAME }}"
+          vm_mac="${{ steps.vars.outputs.NOSIP_MAC }}"
           output=""
+          itr=0
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list -o json | jq -r --arg name "${{ steps.vars.outputs.NOSIP_VM_NAME }}" '.[] | select(.name == $name) | .ip // empty') || true
-            sleep 1
+            output=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name) | .ip // empty') || true
+            if [ -z "$output" ]; then
+              output=$(arp -a 2>/dev/null | grep -i "$vm_mac" | grep -oE '\(([0-9]+\.){3}[0-9]+\)' | tr -d '()' || true)
+              [ -n "$output" ] && echo "IP resolved via ARP: $output"
+            fi
+            if [ -z "$output" ]; then
+              itr=$((itr + 1))
+              if [ $((itr % 12)) -eq 0 ]; then
+                echo "=== No IP after $((itr * 5))s ==="
+                echo "-- VM state:"
+                orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name)' || true
+                echo "-- ARP (192.168.x.x):"
+                arp -a 2>/dev/null | grep "192\.168\." || echo "(none)"
+                echo "-- Bridge interfaces:"
+                ifconfig 2>/dev/null | grep -E "^bridge" || echo "(none)"
+              fi
+              sleep 5
+            fi
           done
           echo "NOSIP_VM_IP=$output" >> "$GITHUB_OUTPUT"
 
