@@ -159,14 +159,27 @@ jobs:
 
       - name: Wait for SSH
         if: env.SKIP_IMAGE != 'true'
-        timeout-minutes: 5
+        timeout-minutes: 15
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
+          vm_ip="${{ steps.vm-ip.outputs.VM_IP }}"
+          attempt=0
           until sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             -o ConnectTimeout=5 \
-            "admin@${{ steps.vm-ip.outputs.VM_IP }}" "echo ok" &>/dev/null; do
+            "admin@${vm_ip}" "echo ok" &>/dev/null; do
+            attempt=$((attempt + 1))
+            if [ $((attempt % 6)) -eq 0 ]; then
+              echo "=== Waiting for SSH ($((attempt * 5))s elapsed) ==="
+              echo "-- RunVZ:"
+              ps aux | grep -i RunVZ | grep -v grep || echo "(not running — VM may have crashed)"
+              echo "-- SSH error:"
+              sshpass -p "${VM_DEFAULT_PASSWORD}" \
+                ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                -o ConnectTimeout=5 \
+                "admin@${vm_ip}" "echo ok" 2>&1 || true
+            fi
             sleep 5
           done
 
