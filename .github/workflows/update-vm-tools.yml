@@ -87,13 +87,24 @@ jobs:
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
+      - name: Pre-run environment check
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          echo "=== WindowServer ==="
+          ps aux | grep -i "[Ww]indow[Ss]erver" | grep -v grep || echo "(not running)"
+          echo "=== port 5900 ==="
+          lsof -i :5900 2>/dev/null || echo "(nothing on 5900)"
+          echo "=== port 5912 ==="
+          lsof -i :5912 2>/dev/null || echo "(nothing on 5912)"
+          echo "=== DISPLAY / launchctl ==="
+          echo "DISPLAY=${DISPLAY:-unset}"
+          launchctl print user/$(id -u) 2>/dev/null | grep -i "window\|vnc\|screen" || echo "(nothing matched)"
+
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
-          sudo -n orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
-            --disable-graphical-console \
-            --vnc-port 5900 \
             -d
 
       - name: Diagnose VM start
@@ -124,7 +135,7 @@ jobs:
           ls -lt ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
           ls -lt /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
           echo "=== crash log content (latest system) ==="
-          latest=$(ls -t /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -1)
+          latest=$(ls -t /Library/Logs/DiagnosticReports/ 2>/dev/null | { grep -i "runvz\|orka" || true; } | head -1)
           if [ -n "$latest" ]; then
             echo "File: $latest"
             sudo cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || echo "(cannot read)"
@@ -132,7 +143,7 @@ jobs:
             echo "(none found)"
           fi
           echo "=== crash log content (latest user) ==="
-          latest_user=$(ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -1)
+          latest_user=$(ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | { grep -i "runvz\|orka" || true; } | head -1)
           if [ -n "$latest_user" ]; then
             echo "File: $latest_user"
             cat "$HOME/Library/Logs/DiagnosticReports/$latest_user" 2>/dev/null || echo "(cannot read)"
