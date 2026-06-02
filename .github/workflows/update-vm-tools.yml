@@ -122,17 +122,35 @@ jobs:
         run: |
           vm_name="${{ steps.vars.outputs.VM_NAME }}"
           output=""
+          vm_mac=""
           itr=0
           while [ -z "$output" ]; do
-            output=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name) | .ip // empty') || true
+            vm_json=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name)') || true
+            output=$(echo "$vm_json" | jq -r '.ip // empty' 2>/dev/null) || true
+
+            if [ -z "$vm_mac" ] && [ -n "$vm_json" ]; then
+              vm_mac=$(echo "$vm_json" | jq -r '.macAddress // empty' 2>/dev/null) || true
+              [ -n "$vm_mac" ] && echo "Captured VM MAC: $vm_mac"
+            fi
+
+            if [ -z "$output" ] && [ -n "$vm_mac" ]; then
+              output=$(arp -a 2>/dev/null | grep -i "$vm_mac" | grep -oE '\(([0-9]+\.){3}[0-9]+\)' | tr -d '()' || true)
+              [ -n "$output" ] && echo "IP resolved via ARP: $output"
+            fi
+
             if [ -z "$output" ]; then
               itr=$((itr + 1))
               if [ $((itr % 12)) -eq 0 ]; then
-                echo "=== No IP after $((itr * 5))s ==="
-                echo "-- All VMs:"
-                orka-engine vm list -o json || true
-                echo "-- Network interfaces:"
-                ifconfig 2>/dev/null || true
+                echo "=== No IP after $((itr * 5))s (MAC: $vm_mac) ==="
+                echo "-- VM state: $vm_json"
+                echo "-- RunVZ:"
+                ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
+                echo "-- ARP (192.168):"
+                arp -a 2>/dev/null | grep "192\.168\." || echo "(none)"
+                echo "-- DHCP leases:"
+                grep -A4 "$vm_mac" /var/db/dhcpd_leases 2>/dev/null || echo "(none or no access)"
+                echo "-- bridge100:"
+                ifconfig bridge100 2>/dev/null || echo "(not present)"
               fi
               sleep 5
             fi
