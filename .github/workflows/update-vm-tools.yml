@@ -87,6 +87,14 @@ jobs:
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
+      - name: Inspect orka-engine flags
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          echo "=== vm run ==="
+          orka-engine vm run --help 2>&1 || true
+          echo "=== vm list ==="
+          orka-engine vm list --help 2>&1 || true
+
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
