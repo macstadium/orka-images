@@ -94,17 +94,35 @@ jobs:
           ps aux | grep -i "[Ww]indow[Ss]erver" | grep -v grep || echo "(not running)"
           echo "=== port 5900 ==="
           lsof -i :5900 2>/dev/null || echo "(nothing on 5900)"
-          echo "=== port 5912 ==="
-          lsof -i :5912 2>/dev/null || echo "(nothing on 5912)"
-          echo "=== DISPLAY / launchctl ==="
-          echo "DISPLAY=${DISPLAY:-unset}"
-          launchctl print user/$(id -u) 2>/dev/null | grep -i "window\|vnc\|screen" || echo "(nothing matched)"
+          echo "=== TCC schema ==="
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" ".schema access" 2>/dev/null | head -5 || echo "(cannot read)"
+          echo "=== TCC ScreenCapture for runvz (system) ==="
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(none or cannot read)"
+          echo "=== TCC ScreenCapture for runvz (user) ==="
+          sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" \
+            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(none or cannot read)"
+
+      - name: Grant TCC Screen Recording to RunVZ
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          RUNVZ_BUNDLE="com.macstadium.orka-engine.runvz"
+          EPOCH=$(date +%s)
+          echo "=== Attempting TCC Screen Recording grant for $RUNVZ_BUNDLE ==="
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+            "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified) VALUES ('kTCCServiceScreenCapture', '$RUNVZ_BUNDLE', 0, 2, 4, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $EPOCH);" \
+            2>&1 && echo "System TCC grant succeeded" || echo "System TCC grant failed (may need fewer columns)"
+          echo "=== Verify TCC entry ==="
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(cannot verify)"
 
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
+            --disable-graphical-console \
+            --vnc-port 5900 \
             -d
 
       - name: Diagnose VM start
