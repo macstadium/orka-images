@@ -93,6 +93,7 @@ jobs:
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             --disable-graphical-console \
+            --vnc-port 5900 \
             -d
 
       - name: Diagnose VM start
@@ -115,6 +116,11 @@ jobs:
           log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 30s 2>/dev/null | tail -30 || true
           echo "=== sudo test ==="
           sudo -n orka-engine vm list -o json 2>&1 || echo "(passwordless sudo not available)"
+          echo "=== recent crash logs ==="
+          ls -lt ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
+          ls -lt /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
+          echo "=== runvz log (last 30s) ==="
+          log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 30s 2>/dev/null | tail -20 || true
 
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
