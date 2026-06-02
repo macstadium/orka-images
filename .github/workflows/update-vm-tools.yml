@@ -94,6 +94,27 @@ jobs:
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             -d
 
+      - name: Diagnose VM start
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          echo "=== runner identity ==="
+          id
+          echo "=== orka-engine entitlements ==="
+          codesign -d --entitlements :- "$(which orka-engine)" 2>&1 || true
+          echo "=== vm list immediately after run ==="
+          orka-engine vm list -o json || true
+          sleep 2
+          echo "=== vm list after 2s ==="
+          orka-engine vm list -o json || true
+          echo "=== RunVZ processes ==="
+          ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
+          echo "=== bridge interfaces ==="
+          ifconfig | grep -E "^bridge" -A 4 || true
+          echo "=== vmnet system log (last 30s) ==="
+          log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 30s 2>/dev/null | tail -30 || true
+          echo "=== sudo test ==="
+          sudo -n orka-engine vm list -o json 2>&1 || echo "(passwordless sudo not available)"
+
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 10
