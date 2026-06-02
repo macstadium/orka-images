@@ -90,7 +90,7 @@ jobs:
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
-          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+          sudo -n orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             --disable-graphical-console \
             --vnc-port 5900 \
@@ -105,22 +105,40 @@ jobs:
           codesign -d --entitlements :- "$(which orka-engine)" 2>&1 || true
           echo "=== vm list immediately after run ==="
           orka-engine vm list -o json || true
-          sleep 2
-          echo "=== vm list after 2s ==="
-          orka-engine vm list -o json || true
-          echo "=== RunVZ processes ==="
+          echo "=== RunVZ processes (t=0) ==="
           ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
-          echo "=== bridge interfaces ==="
+          echo "=== bridge interfaces (t=0) ==="
           ifconfig | grep -E "^bridge" -A 4 || true
-          echo "=== vmnet system log (last 30s) ==="
-          log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 30s 2>/dev/null | tail -30 || true
-          echo "=== sudo test ==="
-          sudo -n orka-engine vm list -o json 2>&1 || echo "(passwordless sudo not available)"
+          sleep 30
+          echo "=== vm list after 30s ==="
+          orka-engine vm list -o json || true
+          echo "=== RunVZ processes (t=30s) ==="
+          ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
+          echo "=== bridge interfaces (t=30s) ==="
+          ifconfig | grep -E "^bridge" -A 4 || true
+          echo "=== vmnet system log (last 60s) ==="
+          log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 60s 2>/dev/null | tail -50 || true
+          echo "=== runvz log (last 60s) ==="
+          log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 60s 2>/dev/null | tail -40 || true
           echo "=== recent crash logs ==="
           ls -lt ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
           ls -lt /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
-          echo "=== runvz log (last 30s) ==="
-          log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 30s 2>/dev/null | tail -20 || true
+          echo "=== crash log content (latest system) ==="
+          latest=$(ls -t /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -1)
+          if [ -n "$latest" ]; then
+            echo "File: $latest"
+            sudo cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || echo "(cannot read)"
+          else
+            echo "(none found)"
+          fi
+          echo "=== crash log content (latest user) ==="
+          latest_user=$(ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -1)
+          if [ -n "$latest_user" ]; then
+            echo "File: $latest_user"
+            cat "$HOME/Library/Logs/DiagnosticReports/$latest_user" 2>/dev/null || echo "(cannot read)"
+          else
+            echo "(none found)"
+          fi
 
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
