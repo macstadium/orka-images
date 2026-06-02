@@ -92,6 +92,7 @@ jobs:
         run: |
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
+            --disable-graphical-console \
             -d
 
       - name: Diagnose VM start
