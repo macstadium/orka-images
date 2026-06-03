@@ -106,54 +106,45 @@ jobs:
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
-          sudo launchctl asuser $(id -u) /usr/local/bin/orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             --disable-graphical-console \
             --vnc-port 5900 \
             -d
 
-      - name: Diagnose VM start
+      - name: Monitor RunVZ exit
         if: env.SKIP_IMAGE != 'true'
         run: |
-          echo "=== runner identity ==="
-          id
-          echo "=== orka-engine entitlements ==="
-          codesign -d --entitlements :- "$(which orka-engine)" 2>&1 || true
           echo "=== vm list immediately after run ==="
           orka-engine vm list -o json || true
-          echo "=== RunVZ processes (t=0) ==="
-          ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
-          echo "=== bridge interfaces (t=0) ==="
-          ifconfig | grep -E "^bridge" -A 4 || true
-          sleep 30
-          echo "=== vm list after 30s ==="
-          orka-engine vm list -o json || true
-          echo "=== RunVZ processes (t=30s) ==="
-          ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
-          echo "=== bridge interfaces (t=30s) ==="
-          ifconfig | grep -E "^bridge" -A 4 || true
-          echo "=== vmnet system log (last 60s) ==="
-          log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 60s 2>/dev/null | tail -50 || true
-          echo "=== runvz log (last 60s) ==="
-          log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 60s 2>/dev/null | tail -40 || true
-          echo "=== recent crash logs ==="
-          ls -lt ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
-          ls -lt /Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "runvz\|orka" | head -5 || echo "(none)"
-          echo "=== crash log content (latest system) ==="
-          latest=$(ls -t /Library/Logs/DiagnosticReports/ 2>/dev/null | { grep -i "runvz\|orka" || true; } | head -1)
-          if [ -n "$latest" ]; then
-            echo "File: $latest"
-            sudo cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || cat "/Library/Logs/DiagnosticReports/$latest" 2>/dev/null || echo "(cannot read)"
-          else
-            echo "(none found)"
+          RUNVZ_PID=$(ps aux | grep "[r]unvz" | awk '{print $2}' | head -1)
+          if [ -z "$RUNVZ_PID" ]; then
+            echo "RunVZ not found at t=0 — VM may not have started"
+            exit 0
           fi
-          echo "=== crash log content (latest user) ==="
-          latest_user=$(ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | { grep -i "runvz\|orka" || true; } | head -1)
-          if [ -n "$latest_user" ]; then
-            echo "File: $latest_user"
-            cat "$HOME/Library/Logs/DiagnosticReports/$latest_user" 2>/dev/null || echo "(cannot read)"
-          else
-            echo "(none found)"
+          echo "RunVZ PID: $RUNVZ_PID ($(date))"
+          echo "=== lsof for RunVZ at t=0 ==="
+          lsof -p "$RUNVZ_PID" 2>/dev/null | grep -E "(REG|IPv|unix|pipe)" | head -20 || true
+          t=0
+          while kill -0 "$RUNVZ_PID" 2>/dev/null; do
+            t=$((t + 2))
+            sleep 2
+            if [ $((t % 10)) -eq 0 ]; then
+              echo "t=${t}s: RunVZ still running (vm list: $(orka-engine vm list -o json 2>/dev/null | jq -c '.[] | {name,state,ip}' 2>/dev/null || echo 'error'))"
+              echo "-- lsof sample --"
+              lsof -p "$RUNVZ_PID" 2>/dev/null | grep -E "(REG|IPv|unix)" | head -10 || true
+            fi
+            if [ "$t" -ge 120 ]; then
+              echo "RunVZ still alive at t=120s — stopping monitor, proceeding to IP wait"
+              break
+            fi
+          done
+          if ! kill -0 "$RUNVZ_PID" 2>/dev/null; then
+            echo "=== RunVZ exited at t=${t}s ==="
+            echo "=== runvz log (last 120s) ==="
+            log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 120s 2>/dev/null | tail -60 || true
+            echo "=== vmnet log (last 120s) ==="
+            log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 120s 2>/dev/null | tail -30 || true
           fi
 
       - name: Wait for VM IP
