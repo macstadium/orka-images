@@ -103,31 +103,10 @@ jobs:
           sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" \
             "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(none or cannot read)"
 
-      - name: Grant TCC Screen Recording to RunVZ
-        if: env.SKIP_IMAGE != 'true'
-        run: |
-          RUNVZ_BUNDLE="com.macstadium.orka-engine.runvz"
-          USER_TCC="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
-          EPOCH=$(date +%s)
-          echo "=== User TCC database schema ==="
-          sqlite3 "$USER_TCC" ".schema access" 2>/dev/null | head -3 || echo "(cannot read schema)"
-          echo "=== Current ScreenCapture entries (user TCC) ==="
-          sqlite3 "$USER_TCC" "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture';" 2>/dev/null || echo "(none or cannot read)"
-          echo "=== Attempting user TCC grant ==="
-          sqlite3 "$USER_TCC" \
-            "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version) VALUES ('kTCCServiceScreenCapture', '$RUNVZ_BUNDLE', 0, 2, 4, 1);" \
-            2>&1 && echo "User TCC grant succeeded" || echo "User TCC grant failed — trying longer INSERT"
-          sqlite3 "$USER_TCC" \
-            "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified) VALUES ('kTCCServiceScreenCapture', '$RUNVZ_BUNDLE', 0, 2, 4, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $EPOCH);" \
-            2>&1 || echo "Longer INSERT also failed"
-          echo "=== Verify user TCC entry ==="
-          sqlite3 "$USER_TCC" \
-            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(cannot verify)"
-
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
-          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+          sudo launchctl asuser $(id -u) /usr/local/bin/orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             --disable-graphical-console \
             --vnc-port 5900 \
