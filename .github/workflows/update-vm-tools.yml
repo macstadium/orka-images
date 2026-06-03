@@ -87,84 +87,15 @@ jobs:
           orka-engine image pull \
             ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }}
 
-      - name: Pre-run environment check
-        if: env.SKIP_IMAGE != 'true'
-        run: |
-          echo "=== WindowServer ==="
-          ps aux | grep -i "[Ww]indow[Ss]erver" | grep -v grep || echo "(not running)"
-          echo "=== port 5900 ==="
-          lsof -i :5900 2>/dev/null || echo "(nothing on 5900)"
-          echo "=== TCC schema ==="
-          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" ".schema access" 2>/dev/null | head -5 || echo "(cannot read)"
-          echo "=== TCC ScreenCapture for runvz (system) ==="
-          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
-            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(none or cannot read)"
-          echo "=== TCC ScreenCapture for runvz (user) ==="
-          sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" \
-            "SELECT service, client, auth_value FROM access WHERE service='kTCCServiceScreenCapture' AND client LIKE '%runvz%';" 2>/dev/null || echo "(none or cannot read)"
-
       - name: Run VM
         if: env.SKIP_IMAGE != 'true'
         run: |
-          orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
+          # launchctl asuser runs orka-engine inside the runner's GUI login session,
+          # which RunVZ requires for LaunchServices access on macOS 15.
+          sudo launchctl asuser "$(id -u)" /usr/local/bin/orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             --disable-graphical-console \
-            --vnc-port 5900 \
             -d
-
-      - name: Monitor RunVZ exit
-        if: env.SKIP_IMAGE != 'true'
-        run: |
-          echo "=== vm list immediately after run ==="
-          orka-engine vm list -o json || true
-          RUNVZ_PID=$(ps aux | grep "[r]unvz" | awk '{print $2}' | head -1)
-          if [ -z "$RUNVZ_PID" ]; then
-            echo "RunVZ not found at t=0 — VM may not have started"
-            exit 0
-          fi
-          echo "RunVZ PID: $RUNVZ_PID ($(date))"
-          echo "=== config.json (while RunVZ alive) ==="
-          sudo cat "/opt/orka/data/${{ steps.vars.outputs.VM_NAME }}/config.json" 2>/dev/null || echo "(cannot read)"
-          echo "=== Sentry envelopes at t=0 (previous crash) ==="
-          sudo find /private/var/root/Library/Caches/io.sentry -type f 2>/dev/null | head -5 | while read f; do
-            echo "--- $f ---"
-            sudo head -c 3000 "$f" 2>/dev/null || true
-            echo ""
-          done || true
-          echo "=== lsof for RunVZ at t=0 ==="
-          lsof -p "$RUNVZ_PID" 2>/dev/null | grep -E "(REG|IPv|unix|pipe)" | head -20 || true
-          t=0
-          while kill -0 "$RUNVZ_PID" 2>/dev/null; do
-            t=$((t + 2))
-            sleep 2
-            if [ $((t % 10)) -eq 0 ]; then
-              echo "t=${t}s: RunVZ still running (vm list: $(orka-engine vm list -o json 2>/dev/null | jq -c '.[] | {name,state,ip}' 2>/dev/null || echo 'error'))"
-              echo "-- lsof sample --"
-              lsof -p "$RUNVZ_PID" 2>/dev/null | grep -E "(REG|IPv|unix)" | head -10 || true
-            fi
-            if [ "$t" -ge 120 ]; then
-              echo "RunVZ still alive at t=120s — stopping monitor, proceeding to IP wait"
-              break
-            fi
-          done
-          if ! kill -0 "$RUNVZ_PID" 2>/dev/null; then
-            echo "=== RunVZ exited at t=${t}s ==="
-            sleep 1
-            echo "=== Sentry envelopes after exit (current crash) ==="
-            sudo find /private/var/root/Library/Caches/io.sentry -type f 2>/dev/null | head -10 | while read f; do
-              echo "--- $f ---"
-              sudo head -c 3000 "$f" 2>/dev/null || true
-              echo ""
-            done || true
-            echo "=== async.log (user cache) ==="
-            cat "$HOME/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
-            echo "=== async.log (root cache) ==="
-            sudo cat "/private/var/root/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
-            echo "=== runvz log (last 120s) ==="
-            log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 120s 2>/dev/null | tail -60 || true
-            echo "=== vmnet log (last 120s) ==="
-            log show --predicate 'subsystem == "com.apple.vmnet" OR subsystem CONTAINS "vmnet"' --last 120s 2>/dev/null | tail -30 || true
-          fi
 
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
@@ -173,35 +104,14 @@ jobs:
         run: |
           vm_name="${{ steps.vars.outputs.VM_NAME }}"
           output=""
-          vm_mac=""
           itr=0
           while [ -z "$output" ]; do
-            vm_json=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name)') || true
-            output=$(echo "$vm_json" | jq -r '.ip // empty' 2>/dev/null) || true
-
-            if [ -z "$vm_mac" ] && [ -n "$vm_json" ]; then
-              vm_mac=$(echo "$vm_json" | jq -r '.macAddress // empty' 2>/dev/null) || true
-              [ -n "$vm_mac" ] && echo "Captured VM MAC: $vm_mac"
-            fi
-
-            if [ -z "$output" ] && [ -n "$vm_mac" ]; then
-              output=$(arp -a 2>/dev/null | grep -i "$vm_mac" | grep -oE '\(([0-9]+\.){3}[0-9]+\)' | tr -d '()' || true)
-              [ -n "$output" ] && echo "IP resolved via ARP: $output"
-            fi
-
+            output=$(orka-engine vm list -o json | jq -r --arg name "$vm_name" '.[] | select(.name == $name) | .ip // empty') || true
             if [ -z "$output" ]; then
               itr=$((itr + 1))
               if [ $((itr % 12)) -eq 0 ]; then
-                echo "=== No IP after $((itr * 5))s (MAC: $vm_mac) ==="
-                echo "-- VM state: $vm_json"
-                echo "-- RunVZ:"
-                ps aux | grep -i RunVZ | grep -v grep || echo "(none)"
-                echo "-- ARP (192.168):"
-                arp -a 2>/dev/null | grep "192\.168\." || echo "(none)"
-                echo "-- DHCP leases:"
-                grep -A4 "$vm_mac" /var/db/dhcpd_leases 2>/dev/null || echo "(none or no access)"
-                echo "-- bridge100:"
-                ifconfig bridge100 2>/dev/null || echo "(not present)"
+                echo "=== No IP after $((itr * 5))s ==="
+                orka-engine vm list || true
               fi
               sleep 5
             fi
@@ -223,9 +133,7 @@ jobs:
             attempt=$((attempt + 1))
             if [ $((attempt % 6)) -eq 0 ]; then
               echo "=== Waiting for SSH ($((attempt * 5))s elapsed) ==="
-              echo "-- RunVZ:"
-              ps aux | grep -i RunVZ | grep -v grep || echo "(not running — VM may have crashed)"
-              echo "-- SSH error:"
+              ps aux | grep -i RunVZ | grep -v grep || echo "-- RunVZ: (not running)"
               sshpass -p "${VM_DEFAULT_PASSWORD}" \
                 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
                 -o ConnectTimeout=5 \
@@ -318,7 +226,7 @@ jobs:
       - name: Run VM in recovery for no-SIP variant
         if: ${{ (inputs.noSip == true || inputs.noSip == 'true') && env.SKIP_IMAGE != 'true' }}
         run: |
-          orka-engine vm run ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
+          sudo launchctl asuser "$(id -u)" /usr/local/bin/orka-engine vm run ${{ steps.vars.outputs.NOSIP_VM_NAME }} \
             --image ${{ steps.vars.outputs.TEMP_NAME }} \
             --recovery \
             --vnc-port 5901 \
@@ -339,10 +247,7 @@ jobs:
               itr=$((itr + 1))
               if [ $((itr % 12)) -eq 0 ]; then
                 echo "=== No IP after $((itr * 5))s ==="
-                echo "-- All VMs:"
-                orka-engine vm list -o json || true
-                echo "-- Network interfaces:"
-                ifconfig 2>/dev/null || true
+                orka-engine vm list || true
               fi
               sleep 5
             fi
@@ -402,9 +307,9 @@ jobs:
       - name: Cleanup
         if: always() && env.SKIP_IMAGE != 'true'
         run: |
-          orka-engine vm delete -f ${{ steps.vars.outputs.VM_NAME }}
+          sudo launchctl asuser "$(id -u)" /usr/local/bin/orka-engine vm delete -f ${{ steps.vars.outputs.VM_NAME }}
 
       - name: Cleanup no-SIP VM
         if: always() && (inputs.noSip == true || inputs.noSip == 'true') && env.SKIP_IMAGE != 'true'
         run: |
-          orka-engine vm delete -f ${{ steps.vars.outputs.NOSIP_VM_NAME }}
+          sudo launchctl asuser "$(id -u)" /usr/local/bin/orka-engine vm delete -f ${{ steps.vars.outputs.NOSIP_VM_NAME }}
