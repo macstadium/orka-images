@@ -123,6 +123,14 @@ jobs:
             exit 0
           fi
           echo "RunVZ PID: $RUNVZ_PID ($(date))"
+          echo "=== config.json (while RunVZ alive) ==="
+          sudo cat "/opt/orka/data/${{ steps.vars.outputs.VM_NAME }}/config.json" 2>/dev/null || echo "(cannot read)"
+          echo "=== Sentry envelopes at t=0 (previous crash) ==="
+          sudo find /private/var/root/Library/Caches/io.sentry -type f 2>/dev/null | head -5 | while read f; do
+            echo "--- $f ---"
+            sudo head -c 3000 "$f" 2>/dev/null || true
+            echo ""
+          done || true
           echo "=== lsof for RunVZ at t=0 ==="
           lsof -p "$RUNVZ_PID" 2>/dev/null | grep -E "(REG|IPv|unix|pipe)" | head -20 || true
           t=0
@@ -141,12 +149,17 @@ jobs:
           done
           if ! kill -0 "$RUNVZ_PID" 2>/dev/null; then
             echo "=== RunVZ exited at t=${t}s ==="
+            sleep 1
+            echo "=== Sentry envelopes after exit (current crash) ==="
+            sudo find /private/var/root/Library/Caches/io.sentry -type f 2>/dev/null | head -10 | while read f; do
+              echo "--- $f ---"
+              sudo head -c 3000 "$f" 2>/dev/null || true
+              echo ""
+            done || true
             echo "=== async.log (user cache) ==="
             cat "$HOME/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
             echo "=== async.log (root cache) ==="
             sudo cat "/private/var/root/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
-            echo "=== config.json ==="
-            cat /opt/orka/data/*/config.json 2>/dev/null || echo "(cannot read)"
             echo "=== runvz log (last 120s) ==="
             log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 120s 2>/dev/null | tail -60 || true
             echo "=== vmnet log (last 120s) ==="
