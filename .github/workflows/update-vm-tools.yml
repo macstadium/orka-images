@@ -141,6 +141,12 @@ jobs:
           done
           if ! kill -0 "$RUNVZ_PID" 2>/dev/null; then
             echo "=== RunVZ exited at t=${t}s ==="
+            echo "=== async.log (user cache) ==="
+            cat "$HOME/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
+            echo "=== async.log (root cache) ==="
+            sudo cat "/private/var/root/Library/Caches/com.macstadium.orka-engine.runvz/async.log" 2>/dev/null || echo "(cannot read or not found)"
+            echo "=== config.json ==="
+            cat /opt/orka/data/*/config.json 2>/dev/null || echo "(cannot read)"
             echo "=== runvz log (last 120s) ==="
             log show --predicate 'process CONTAINS "runvz" OR process CONTAINS "orka"' --last 120s 2>/dev/null | tail -60 || true
             echo "=== vmnet log (last 120s) ==="
