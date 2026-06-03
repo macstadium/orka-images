@@ -90,7 +90,7 @@ configure_remote_access() {
 
     # Remote Login (SSH)
     if [[ "$macos_major" -ge 26 ]]; then
-        sudo_run launchctl enable system/com.openssh.sshd
+        sudo_run launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
         sudo_run launchctl kickstart -k system/com.openssh.sshd
     else
         sudo_run systemsetup -setremotelogin on
@@ -98,11 +98,9 @@ configure_remote_access() {
     fi
 
     # Screen Sharing
+    sudo_run launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
     if [[ "$macos_major" -ge 26 ]]; then
-        sudo_run launchctl enable system/com.apple.screensharing
         sudo_run launchctl kickstart -k system/com.apple.screensharing
-    else
-        sudo_run launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
     fi
 
     # Remote Management (ARD/VNC)
