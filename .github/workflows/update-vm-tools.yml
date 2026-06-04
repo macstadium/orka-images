@@ -67,7 +67,7 @@ jobs:
             exit 1
           fi
           echo "Runner audit session:"
-          launchctl procinfo $$ | grep -i "session id"
+          sudo launchctl procinfo $$ | grep -i "session id"
 
       - name: Set VM name
         if: env.SKIP_IMAGE != 'true'
