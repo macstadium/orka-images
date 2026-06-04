@@ -111,11 +111,13 @@ jobs:
 
       - name: Run setup
         if: env.SKIP_IMAGE != 'true'
+        timeout-minutes: 15
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
             "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/setup.sh"
 
