@@ -66,8 +66,6 @@ jobs:
             echo "orka-engine not found on runner. Register an arm-mini-002 runner with orka-engine pre-installed." >&2
             exit 1
           fi
-          echo "Runner audit session:"
-          sudo launchctl procinfo $$ | grep -i "session id"
 
       - name: Set VM name
         if: env.SKIP_IMAGE != 'true'
@@ -88,15 +86,6 @@ jobs:
           orka-engine vm run ${{ steps.vars.outputs.VM_NAME }} \
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             -d
-
-      - name: Diagnose VM state
-        if: env.SKIP_IMAGE != 'true'
-        run: |
-          for i in 1 2 3 4 5; do
-            echo "--- t=${i}s ---"
-            orka-engine vm list -o json 2>&1 | jq -r '.[] | "\(.name) ip=\(.ip // "none") state=\(.state // "unknown")"' || true
-            sleep 1
-          done
 
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
@@ -122,11 +111,13 @@ jobs:
 
       - name: Run setup
         if: env.SKIP_IMAGE != 'true'
+        timeout-minutes: 15
         env:
           VM_DEFAULT_PASSWORD: ${{ secrets.VM_DEFAULT_PASSWORD }}
         run: |
           sshpass -p "${VM_DEFAULT_PASSWORD}" \
             ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
             "admin@${{ steps.vm-ip.outputs.VM_IP }}" \
             "ORKA_VM_TOOLS_VERSION=${{ inputs.vmToolsVersion }} VM_DEFAULT_PASSWORD=${{ secrets.VM_DEFAULT_PASSWORD }} bash ~/setup.sh"
 
