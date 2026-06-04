@@ -112,6 +112,11 @@ configure_remote_access() {
     log "Remote access configured"
 }
 
+clear_shell_history() {
+    log "Clearing shell history..."
+    rm -f ~/.zsh_history ~/.bash_history
+}
+
 main() {
     log "=== MacOS Orka VM Setup Started ==="
     echo ""
@@ -119,6 +124,7 @@ main() {
     install_orka_vm_tools
     setup_sys_daemon
     configure_remote_access
+    clear_shell_history
 
     echo ""
     log "=== Automated Setup Completed ==="
