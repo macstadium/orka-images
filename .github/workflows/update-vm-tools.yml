@@ -66,6 +66,8 @@ jobs:
             echo "orka-engine not found on runner. Register an arm-mini-002 runner with orka-engine pre-installed." >&2
             exit 1
           fi
+          echo "Runner audit session:"
+          launchctl procinfo $$ | grep -i "session id"
 
       - name: Set VM name
         if: env.SKIP_IMAGE != 'true'
