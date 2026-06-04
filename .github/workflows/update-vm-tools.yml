@@ -89,6 +89,15 @@ jobs:
             --image ghcr.io/macstadium/orka-images/${{ matrix.name }}:${{ matrix.source_tag }} \
             -d
 
+      - name: Diagnose VM state
+        if: env.SKIP_IMAGE != 'true'
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "--- t=${i}s ---"
+            orka-engine vm list -o json 2>&1 | jq -r '.[] | "\(.name) ip=\(.ip // "none") state=\(.state // "unknown")"' || true
+            sleep 1
+          done
+
       - name: Wait for VM IP
         if: env.SKIP_IMAGE != 'true'
         timeout-minutes: 5
