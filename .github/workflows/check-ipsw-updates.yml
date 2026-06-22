@@ -1,0 +1,142 @@
+name: Check for new IPSW releases
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  check:
+    name: Check SOFA and Apple catalog for new VirtualMac firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for new versions
+        id: check
+        run: |
+          set -euo pipefail
+
+          current=$(cat ipsw-versions.json)
+
+          updated=false
+          new_versions=""
+          new_images=""
+
+          # Fetch version data from SOFA (macadmins.io) and IPSW URLs from Apple's official catalog
+          sofa=$(curl -s "https://sofafeed.macadmins.io/v1/macos_data_feed.json")
+          curl -s "https://mesu.apple.com/assets/macos/com_apple_macOSIPSW/com_apple_macOSIPSW.xml" \
+            -o /tmp/apple_catalog.xml
+
+          for os in tahoe sequoia sonoma; do
+            case $os in
+              tahoe)   sofa_prefix="Tahoe"   ;;
+              sequoia) sofa_prefix="Sequoia" ;;
+              sonoma)  sofa_prefix="Sonoma"  ;;
+            esac
+
+            latest_version=$(echo "$sofa" | jq -r \
+              --arg prefix "$sofa_prefix" \
+              '.OSVersions[] | select(.OSVersion | startswith($prefix)) | .Latest.ProductVersion')
+
+            latest_buildid=$(echo "$sofa" | jq -r \
+              --arg prefix "$sofa_prefix" \
+              '.OSVersions[] | select(.OSVersion | startswith($prefix)) | .Latest.Build')
+
+            # Look up the updates.cdn-apple.com URL from Apple's official IPSW catalog.
+            # Try exact buildid match first; fall back to prefix match (first 2 chars) to
+            # handle cases where SOFA and Apple's catalog report different buildids for the
+            # same release (e.g. SOFA: 25F71, catalog: 25F80).
+            latest_url=$(BUILDID="$latest_buildid" python3 -c "
+import plistlib, sys, os
+buildid = os.environ['BUILDID']
+prefix = buildid[:2]
+data = plistlib.load(sys.stdin.buffer)
+fallback_url = ''
+for bucket in data.get('MobileDeviceSoftwareVersionsByVersion', {}).values():
+    vm = bucket.get('MobileDeviceSoftwareVersions', {}).get('VirtualMac2,1', {})
+    if buildid in vm:
+        url = vm[buildid].get('Restore', {}).get('FirmwareURL', '')
+        if url:
+            print(url)
+            sys.exit(0)
+    if not fallback_url:
+        for bid, entry in vm.items():
+            if bid[:2] == prefix:
+                url = entry.get('Restore', {}).get('FirmwareURL', '')
+                if url:
+                    fallback_url = url
+                    break
+print(fallback_url)
+" < /tmp/apple_catalog.xml 2>/dev/null || echo "")
+
+            current_version=$(echo "$current" | jq -r --arg os "$os" '.[$os].version')
+
+            if [ "$latest_version" != "$current_version" ]; then
+              echo "New $os version: $current_version -> $latest_version ($latest_buildid)"
+              updated=true
+              new_versions="$new_versions $os:$latest_version"
+              new_images="${new_images:+$new_images,}$os"
+
+              current=$(echo "$current" | jq \
+                --arg os "$os" \
+                --arg version "$latest_version" \
+                --arg buildid "$latest_buildid" \
+                --arg url "$latest_url" \
+                '.[$os] = {version: $version, buildid: $buildid, url: $url}')
+            else
+              echo "$os is current: $current_version"
+            fi
+          done
+
+          echo "updated=$updated" >> "$GITHUB_OUTPUT"
+          echo "new_versions=$new_versions" >> "$GITHUB_OUTPUT"
+          echo "new_images=$new_images" >> "$GITHUB_OUTPUT"
+
+          if [ "$updated" = "true" ]; then
+            echo "$current" | jq . > ipsw-versions.json
+          fi
+
+      - name: Open PR with updated versions
+        if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="update/ipsw-versions-$(date +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add ipsw-versions.json
+          git commit -m "chore: update ipsw-versions.json with new releases"
+          git push origin "$branch"
+
+          gh pr create \
+            --title "chore: new IPSW releases detected: ${{ steps.check.outputs.new_versions }}" \
+            --body "$(cat <<'EOF'
+          New stable IPSW releases are available for VirtualMac2,1.
+
+          Updated versions: ${{ steps.check.outputs.new_versions }}
+
+          Review \`ipsw-versions.json\` and merge to trigger the build pipeline.
+
+          Sources: sofafeed.macadmins.io (version detection), mesu.apple.com (IPSW URLs via updates.cdn-apple.com)
+          EOF
+          )" \
+            --head "$branch" \
+            --base main
+
+      - name: Trigger vm-tools update for new IPSW versions
+        if: steps.check.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/update-vm-tools.yml/dispatches \
+            --method POST \
+            -f ref=main \
+            -f 'inputs[images]=${{ steps.check.outputs.new_images }}'
