@@ -36,6 +36,29 @@ To set up a VM from an IPSW file using Orka Desktop, see the [setup.sh script](.
 
 ---
 
+## macOS 27 (beta)
+
+> [!WARNING]
+> This is a **developer beta** image, not GA. Expect breaking changes between beta builds, and don't use it for production CI/CD until macOS 27 ships (targeted September 2026, Orka 3.7). Full validation, including Xcode 27/Simulator, Rosetta, and TLS 1.2 connectivity checks, is still in progress.
+
+Beta 3 is currently published for early testing. Browse the latest tags on [GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Fmacos27).
+
+**Host OS requirement:** A macOS Sequoia (15.7.1 or later) host runs the macOS 27 guest without issue. Building your own image from IPSW requires a macOS 27 host and Xcode 27 beta; running a published image does not.
+
+#### Deploy with the CLI
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/macos27:b3-latest
+```
+
+200 GB variant:
+
+```sh
+orka3 vm deploy --image ghcr.io/macstadium/orka-images/macos27:b3-200g-latest
+```
+
+---
+
 ## macOS Tahoe (26.x)
 
 Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for all minor releases in the 26.x line — browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
