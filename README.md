@@ -71,7 +71,7 @@ Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for
 
 **Orka version requirement:** Orka 3.5.0 or later is required to run Tahoe guest VMs.
 
-**Host OS requirement:** A macOS Sequoia (15.5 or later) host is required.
+**Host OS requirement:** A macOS Sequoia (15.6 or later) host is required. macOS 26.6.2 is the recommended host OS.
 
 > [!NOTE]
 > macOS 26.1 introduced [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that affect certain VM functionality. Review the Apple release notes to determine if your workflows are impacted before deploying 26.1+ VMs in production.
