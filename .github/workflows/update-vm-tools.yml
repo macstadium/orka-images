@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       vmToolsVersion:
-        description: 'Version of orka-vm-tools to install (e.g., 3.6.0)'
+        description: 'Version of orka-vm-tools to install (e.g., 4.0.0)'
         required: false
-        default: '3.6.0'
+        default: '4.0.0'
       images:
-        description: 'Comma-separated list of images to update (e.g., sequoia,sonoma). Leave blank to update all.'
+        description: 'Comma-separated list of images to update (e.g., tahoe,sequoia). Leave blank to update all.'
         required: false
         default: ''
 
@@ -42,10 +42,6 @@ jobs:
             source_tag: 200-gb
             tag: 200-gb
             disk_gb: 200
-          - name: sonoma
-            source_tag: "14.6"
-            tag: latest
-            disk_gb: 90
     defaults:
       run:
         shell: bash
