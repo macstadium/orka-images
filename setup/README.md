@@ -75,7 +75,7 @@
 
 #### Tool installation
 
-- Downloads and installs the current version of Orka VM Tools, default is v3.5.0
+- Downloads and installs the current version of Orka VM Tools, default is v4.0.0
 - Downloads and runs Orka `sys-daemon.sh` setup script (this is used to optimize the Screen Share and VNC performance of the VM)
 
 The following cannot be automated due to macOS security requirements (TCC permissions) and must be configured manually via System Settings:
