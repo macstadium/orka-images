@@ -36,26 +36,30 @@ To set up a VM from an IPSW file using Orka Desktop, see the [setup.sh script](.
 
 ---
 
-## macOS 27 (beta)
+## macOS 27 (Golden Gate)
 
-> [!WARNING]
-> This is a **developer beta** image, not GA. Expect breaking changes between beta builds, and don't use it for production CI/CD until macOS 27 ships (targeted September 2026, Orka 3.7). Full validation, including Xcode 27/Simulator, Rosetta, and TLS 1.2 connectivity checks, is still in progress.
+Orka supports macOS 27 Golden Gate as a guest OS. See the [compatibility matrix](https://docs.macstadium.com/orka/orka-overview/compatibility-matrix) for the full table.
 
-Beta 3 is currently published for early testing. Browse the latest tags on [GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Fmacos27).
+**Orka version requirement:** Orka 3.6 or later is required to run macOS 27 guest VMs.
 
-**Host OS requirement:** A macOS Sequoia (15.7.1 or later) host runs the macOS 27 guest without issue. Building your own image from IPSW requires a macOS 27 host and Xcode 27 beta; running a published image does not.
+**Host OS requirement:** A macOS Tahoe (26.6.2 or later) host is required. macOS 15 hosts aren't supported for macOS 27 guests.
+
+**Memory:** macOS 27 VMs need more than 2 GB of memory to boot. MacStadium recommends at least 4 GB.
 
 #### Deploy with the CLI
 
 ```sh
-orka3 vm deploy --image ghcr.io/macstadium/orka-images/macos27:b3-latest
+orka vm deploy --image ghcr.io/macstadium/orka-images/golden-gate:latest --memory 4
 ```
 
-200 GB variant:
+On Orka 3.6, the CLI is `orka3`: run the same command with `orka3` instead of `orka`.
 
-```sh
-orka3 vm deploy --image ghcr.io/macstadium/orka-images/macos27:b3-200g-latest
-```
+#### Deploy with Orka Desktop
+
+1. Click **+ Create New VM**
+2. Select **Pull from OCI registry**
+3. Name the VM and set parameters (CPUs, memory of at least 4 GB, disk size)
+4. In the **OCI Image Name** field, enter: `ghcr.io/macstadium/orka-images/golden-gate:latest`
 
 ---
 
