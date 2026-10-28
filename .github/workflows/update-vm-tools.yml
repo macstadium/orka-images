@@ -8,7 +8,7 @@ on:
         required: false
         default: '4.0.0'
       images:
-        description: 'Comma-separated list of images to update (e.g., tahoe,sequoia). Leave blank to update all.'
+        description: 'Comma-separated list of images to update (e.g., golden-gate,tahoe). Leave blank to update all.'
         required: false
         default: ''
 
@@ -26,6 +26,10 @@ jobs:
       max-parallel: 1
       matrix:
         include:
+          - name: golden-gate
+            source_tag: latest
+            tag: latest
+            disk_gb: 90
           - name: tahoe
             source_tag: latest
             tag: latest
