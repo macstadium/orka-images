@@ -1,0 +1,17 @@
+{
+  "tahoe": {
+    "version": "26.4.1",
+    "buildid": "25E253",
+    "url": "https://updates.cdn-apple.com/2026WinterFCS/fullrestores/122-28781/DCB2FF13-06CB-44C2-BCA2-DFCAF3521D46/UniversalMac_26.4.1_25E253_Restore.ipsw"
+  },
+  "sequoia": {
+    "version": "15.6.1",
+    "buildid": "24G90",
+    "url": "https://updates.cdn-apple.com/2025SummerFCS/fullrestores/093-10809/CFD6DD38-DAF0-40DA-854F-31AAD1294C6F/UniversalMac_15.6.1_24G90_Restore.ipsw"
+  },
+  "sonoma": {
+    "version": "14.6.1",
+    "buildid": "23G93",
+    "url": "https://updates.cdn-apple.com/2024SummerFCS/fullrestores/062-52859/932E0A8F-6644-4759-82DA-F8FA8DEA806A/UniversalMac_14.6.1_23G93_Restore.ipsw"
+  }
+}
