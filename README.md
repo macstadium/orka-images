@@ -36,6 +36,33 @@ To set up a VM from an IPSW file using Orka Desktop, see the [setup.sh script](.
 
 ---
 
+## macOS 27 (Golden Gate)
+
+Orka supports macOS 27 Golden Gate as a guest OS. See the [compatibility matrix](https://docs.macstadium.com/orka/orka-overview/compatibility-matrix) for the full table.
+
+**Orka version requirement:** Orka 3.6 or later is required to run macOS 27 guest VMs.
+
+**Host OS requirement:** A macOS Tahoe (26.6.2 or later) host is required. macOS 15 hosts aren't supported for macOS 27 guests.
+
+**Memory:** macOS 27 VMs need more than 2 GB of memory to boot. MacStadium recommends at least 4 GB.
+
+#### Deploy with the CLI
+
+```sh
+orka vm deploy --image ghcr.io/macstadium/orka-images/golden-gate:latest --memory 4
+```
+
+On Orka 3.6, the CLI is `orka3`: run the same command with `orka3` instead of `orka`.
+
+#### Deploy with Orka Desktop
+
+1. Click **+ Create New VM**
+2. Select **Pull from OCI registry**
+3. Name the VM and set parameters (CPUs, memory of at least 4 GB, disk size)
+4. In the **OCI Image Name** field, enter: `ghcr.io/macstadium/orka-images/golden-gate:latest`
+
+---
+
 ## macOS Tahoe (26.x)
 
 Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for all minor releases in the 26.x line — browse releases on [Orka Hub](https://orkahub.com/) or see [all tags on GHCR](https://github.com/macstadium/orka-images/pkgs/container/orka-images%2Ftahoe).
@@ -44,7 +71,7 @@ Orka supports macOS Tahoe as a guest OS. Version-specific tags are available for
 
 **Orka version requirement:** Orka 3.5.0 or later is required to run Tahoe guest VMs.
 
-**Host OS requirement:** A macOS Sequoia (15.5 or later) host is required.
+**Host OS requirement:** A macOS Sequoia (15.6 or later) host is required. macOS 26.6.2 is the recommended host OS.
 
 > [!NOTE]
 > macOS 26.1 introduced [changes to the Virtualization framework](https://developer.apple.com/documentation/macos-release-notes/macos-26_1-release-notes#Virtualization) that affect certain VM functionality. Review the Apple release notes to determine if your workflows are impacted before deploying 26.1+ VMs in production.
