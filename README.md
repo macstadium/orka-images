@@ -46,10 +46,12 @@ Orka supports macOS 27 Golden Gate as a guest OS. See the [compatibility matrix]
 
 **Memory:** macOS 27 VMs need more than 2 GB of memory to boot. MacStadium recommends at least 4 GB.
 
+**CPU:** Give macOS 27 VMs at least 4 vCPU. With Orka's default of 3, Safari, Web Inspector, and other web views can render blank.
+
 #### Deploy with the CLI
 
 ```sh
-orka vm deploy --image ghcr.io/macstadium/orka-images/golden-gate:latest --memory 4
+orka vm deploy --image ghcr.io/macstadium/orka-images/golden-gate:latest --cpu 4 --memory 8
 ```
 
 On Orka 3.6, the CLI is `orka3`: run the same command with `orka3` instead of `orka`.
@@ -58,7 +60,7 @@ On Orka 3.6, the CLI is `orka3`: run the same command with `orka3` instead of `o
 
 1. Click **+ Create New VM**
 2. Select **Pull from OCI registry**
-3. Name the VM and set parameters (CPUs, memory of at least 4 GB, disk size)
+3. Name the VM and set parameters (at least 4 CPUs, memory of at least 4 GB, disk size)
 4. In the **OCI Image Name** field, enter: `ghcr.io/macstadium/orka-images/golden-gate:latest`
 
 ---
